@@ -421,8 +421,15 @@ module ErasedDUs =
 module FableInteracting =
     [<Emit("Date")>]
     let Date : obj = jsNative
+    [<Emit("Array.isArray")>]
+    let isArray : obj -> bool = jsNative
     let instance :obj = createNew Date ()
     console.log(instance)
+    // apparently fable tries to use new ES2015 TypedArrays for arrays
+    let typedArray = [| 4;3;2 |]
+    console.log(typedArray)
+    // returns false
+    console.log(isArray typedArray)
 
 
 
