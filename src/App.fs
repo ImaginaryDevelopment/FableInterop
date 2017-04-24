@@ -1,3 +1,4 @@
+[<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions","MemberNamesMustBePascalCase")>]
 module FableInterop
 
 open Fable.Core
@@ -132,10 +133,14 @@ module ParseFloat =
         let systemFloatParse x =
             console.group "double.Parse"
             console.log(System.Double.Parse x)
+            console.groupEnd()
         systemFloatParse "1.2"
 
+[<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions","MemberNamesMustBePascalCase")>]
 module JQueryMap =
+    // [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions","MemberNamesMustBePascalCase")>]
     type IJQuery =
+        [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions","MemberNamesMustBePascalCase")>]
         abstract css : string * string -> IJQuery
         abstract addClass : string -> IJQuery
         // for awhile not using .on for event attaching was listed as deprecated in jQuery (or a bad practice, I don't remember which)
@@ -185,6 +190,8 @@ module JQueryMap =
         console.log(main)
         let main = main.addClass("fancy2")
         let main = main.onClick(fun ev -> console.log("clicked2"); console.log(ev))
+        // this emit attempt doesn't compile =(
+        // [<Emit("'$'main")>]
         // sadly this maps to _main not $main like it would in javascript
         let ``$main`` = main.css ("background-color", "red")
         let main = ``$main``.click()
@@ -203,6 +210,7 @@ module JQueryMap =
         // piping still works? are the .css calls above using what the emit says to use?
         |> JQuery.css "background-color" "blue"
         |> ignore<IJQuery>
+        console.groupEnd()
     anotherSample2()
     // dynamic programming (discouraged)
     module JQueryDynamic =
@@ -216,12 +224,16 @@ module JQueryMap =
         |> ignore
 
 
+
     console.log("jQuery stuff done!")
 
+// it seems this produces multiple lines of editing a fresh {}, not a single {current:..., amount:..., unit:...}
 module ObjectLiterals =
     open System
+    [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions", "InterfaceNamesMustBeginWithI")>]
     type AddTimeProps =
         abstract current : DateTime with get,set
+        [<Emit("$0.specialAmount{{=$1}}")>]
         abstract amount : int with get,set
         abstract unit : string with get,set
 
@@ -229,3 +241,10 @@ module ObjectLiterals =
     parameter.current <- DateTime.Now
     parameter.amount <- 20
     parameter.unit <- "days"
+
+[<StringEnum>]
+type TimeUnit =
+    | Days
+    | Months
+    | Years
+console.log(TimeUnit.Months)

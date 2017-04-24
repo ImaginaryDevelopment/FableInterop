@@ -1,6 +1,7 @@
 <Project Sdk="FSharp.NET.Sdk;Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard1.6</TargetFramework>
+    <DefineConstants>CODE_ANALYSIS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="src/App.fs" />
