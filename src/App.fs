@@ -418,6 +418,12 @@ module ErasedDUs =
     let result2 = imaginaryfunc(!^ 4)
     console.log(result2)
 
+module FableInteracting =
+    [<Emit("Date")>]
+    let Date : obj = jsNative
+    let instance :obj = createNew Date ()
+    console.log(instance)
+
 
 
 
