@@ -98,11 +98,15 @@ module ParseFloat =
     module DoubleTryParse =
         let systemFloatParse x =
             console.group "double.TryParse"
-            match System.Double.TryParse x with
+            let (isSuccess,value) as result = System.Double.TryParse x
+            match result with
             | true, x -> console.log(x)
             | false, _ -> console.log("double.TryParse failed")
             console.groupEnd()
+            // as long as I return something besides unit, the rest of this method runs in the bizzarre section. really strange
+            value
 
+        // if systemFloatParse returns unit this acts up, and doesn't run the method
         let bizarreOrUnexpectedMaybeBugs =
             console.group "buggy?"
             // this acts strangely, the systemFloatParse function doesn't appear to be evaluated, instead it just prints an empty object {}
@@ -117,6 +121,7 @@ module ParseFloat =
 
         // this does what I would expect
         systemFloatParse "1.2"
+        |> ignore<obj>
     module DoubleParse =
         let systemFloatParse x =
             console.group "double.Parse"
