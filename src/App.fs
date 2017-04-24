@@ -249,9 +249,11 @@ type TimeUnit =
     | Months
     | Years
 console.log(TimeUnit.Months)
-// apparently this doens't work =(
+// apparently this doesn't work =(
 module ExtensionProperties =
     open ObjectLiterals
     type AddTimeProps with
-        member x.Unit : TimeUnit = TimeUnit.Months
+        member x.Unit
+            with get() = TimeUnit.Months
+
     console.log(ObjectLiterals.parameter)
