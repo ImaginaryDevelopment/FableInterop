@@ -247,13 +247,36 @@ module ObjectLiterals =
 type TimeUnit =
     | Days
     | Months
-    | Years
+    | [<CompiledName("YEARS")>] Years
 console.log(TimeUnit.Months)
 // apparently this doesn't work =(
 module ExtensionProperties =
     open ObjectLiterals
     type AddTimeProps with
-        member x.Unit
+        member x.Unit2
             with get() = TimeUnit.Months
 
-    console.log(ObjectLiterals.parameter)
+    let showExtensionPropertyDoesntWork() =
+        console.log(ObjectLiterals.parameter)
+module EnumedObjectLiteral =
+    open System
+    type AddTimeProps =
+        abstract current : DateTime with get,set
+        [<Emit("$0.specialAmount{{=$1}}")>]
+        abstract amount : int with get,set
+        abstract unit : TimeUnit with get,set
+    let parameter = createEmpty<AddTimeProps>
+    parameter.current <- DateTime.Now
+    parameter.amount <- 30
+    parameter.unit <- TimeUnit.Years
+    console.log(parameter)
+module Pojos =
+    // for libraries that require a plain object (like React components)
+    [<Pojo>]
+    type Person = {name:string;age:int}
+    console.log(typeof<Person>)
+    type PersonNonPojo = {name2:string;age2:int}
+    let person = {name="Mike"; age=35}
+    let me = {person with name ="Zaid"}
+    let stillMe = {me with age = 20}
+    console.log(stillMe)
