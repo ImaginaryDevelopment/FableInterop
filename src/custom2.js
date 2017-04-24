@@ -14,4 +14,5 @@
             }
             return {imaginaryFuncRan:true};
     }
-})(typeof(exports) !== 'undefined' ? exports : typeof(global) !== 'undefined' ? global : window);
+// })(typeof(exports) !== 'undefined' ? inspect('exports',exports) : typeof(global) !== 'undefined' ?inspect('global', global) : window);
+})(typeof(exports) !== 'undefined' ? (function (){ console.log('exports!', exports); return exports;}()) : typeof(global) !== 'undefined' ? (function(){ console.log('global!',global); return global}()) : (function(){console.log('window!'); return window; }()));

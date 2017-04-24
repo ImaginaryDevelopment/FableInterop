@@ -8,7 +8,7 @@ module.exports = {
             return null;
         }
     },
-    getValue :function(obj, prop) {
+    getValue : function(obj, prop) {
         var result = obj[prop];
         if (result === undefined) {
             return null;

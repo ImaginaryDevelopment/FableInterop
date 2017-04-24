@@ -7,11 +7,24 @@ open Fable.Import
 open Fable.Import.Browser
 
 // following https://medium.com/@zaid.naom/f-interop-with-javascript-in-fable-the-complete-guide-ccc5b896a59f
-console.clear()
+
+// console.clear here, means any output from previous javascript to load, would be hidden/lost
+// console.clear()
 console.log("Fable is up and running...")
 
 [<Emit("undefined")>]
 let undefined : obj = jsNative
+type Console with
+    [<Emit("console.log($0,$1)")>]
+    member __.log2 a b = jsNative
+    // let log2 a b = jsNative
+
+// works but not available anywhere else, as this seems to be nearly the last thing to run
+// so nice to see in dead comments, but not to keep in or use
+// let inspect (x:obj) (title:string) :obj =
+//     console.log2 title x
+//     x
+
 
 [<Emit("window[$0] = $1")>]
 let defineGlobal (name:string) (x:'A) : unit = jsNative
@@ -65,7 +78,7 @@ console.log(getRandom())
 console.log(System.Random().Next())
 
 module BadParseFloat =
-    [<Emit("isNaN(parseFloat($0)) ? null : parseFloat($0)  ")>]
+    [<Emit("isNaN(parseFloat($0)) ? null : parseFloat($0)")>]
     let parseFloat' (input : string) : float option = jsNative
     let directNativeParseFloat() =
         console.group("directNativeParseFloat")
