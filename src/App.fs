@@ -147,28 +147,30 @@ module JQueryMap =
         [<Emit("$0.on('click', $1)")>]
         abstract onClick : (obj -> unit) -> IJQuery
 
-    [<Emit("window['$']($0)")>]
-    let select (selector:string) : IJQuery = jsNative
+    // moving these methods into a JQuery module did not change the resulting output so says [WDS] in the console
+    module JQuery =
+        [<Emit("window['$']($0)")>]
+        let select (selector:string) : IJQuery = jsNative
 
-    [<Emit("window['$']($0)")>]
-    let ready (handler: unit -> unit) : unit = jsNative
+        [<Emit("window['$']($0)")>]
+        let ready (handler: unit -> unit) : unit = jsNative
 
-    [<Emit("$2.css($0, $1)")>]
-    let css (prop: string) (value: string) (el: IJQuery) : IJQuery = jsNative
+        [<Emit("$2.css($0, $1)")>]
+        let css (prop: string) (value: string) (el: IJQuery) : IJQuery = jsNative
 
-    // I don't see any difference in the resulting code in this being here, vs it not being here (except anotherSample2)
-    // |> fun x -> x.addClass results in ugly code either way
-    // |> addClass "fancy3" seems to result in pretty code
-    [<Emit("$1\r\n.addClass($0)")>]
-    let addClass (className: string) (el: IJQuery) : IJQuery = jsNative
+        // I don't see any difference in the resulting code in this being here, vs it not being here (except anotherSample2)
+        // |> fun x -> x.addClass results in ugly code either way
+        // |> addClass "fancy3" seems to result in pretty code
+        [<Emit("$1\r\n.addClass($0)")>]
+        let addClass (className: string) (el: IJQuery) : IJQuery = jsNative
 
-    // \r\n in the emit doesn't appear to help the output =(
-    [<Emit("$1\r\n.click($0)")>]
-    let click (handler: obj -> unit)  (el: IJQuery) : IJQuery = jsNative
+        // \r\n in the emit doesn't appear to help the output =(
+        [<Emit("$1\r\n.click($0)")>]
+        let click (handler: obj -> unit)  (el: IJQuery) : IJQuery = jsNative
 
     // methodChainingSample
     let sample () =
-        select("#main")
+        JQuery.select("#main")
             .addClass("fancy")
             .click(fun ev -> console.log("clicked"))
             .css("background-color", "red")
@@ -179,7 +181,7 @@ module JQueryMap =
     //shadowing sequence sample
     let anotherSample () =
         console.group("anotherSample")
-        let main = select("#main")
+        let main = JQuery.select("#main")
         console.log(main)
         let main = main.addClass("fancy2")
         let main = main.onClick(fun ev -> console.log("clicked2"); console.log(ev))
@@ -193,15 +195,37 @@ module JQueryMap =
     // piping sequence sample
     let anotherSample2() =
         console.group "anotherSample2"
-        select "#main"
+        JQuery.select "#main"
         // this produces horribly ugly code for some reason
         // |> fun x -> x.addClass "fancy3"
-        |> addClass "fancy3"
-        |> click (fun ev -> console.log("clicked3"))
+        |> JQuery.addClass "fancy3"
+        |> JQuery.click (fun ev -> console.log("clicked3"))
         // piping still works? are the .css calls above using what the emit says to use?
-        |> css "background-color" "blue"
+        |> JQuery.css "background-color" "blue"
         |> ignore<IJQuery>
     anotherSample2()
+    // dynamic programming (discouraged)
+    module JQueryDynamic =
+        module JQuery =
+            [<Emit("window['$']($0)")>]
+            let select (selector: string) = jsNative
+        let div: obj = JQuery.select "#main"
+
+        // fade isn't defined in jQuery, perhaps this code was meant for jQueryUI?
+        !!div?css("any","prop")?html("non-empty") //?fade(400)
+        |> ignore
 
 
     console.log("jQuery stuff done!")
+
+module ObjectLiterals =
+    open System
+    type AddTimeProps =
+        abstract current : DateTime with get,set
+        abstract amount : int with get,set
+        abstract unit : string with get,set
+
+    let parameter = createEmpty<AddTimeProps>
+    parameter.current <- DateTime.Now
+    parameter.amount <- 20
+    parameter.unit <- "days"
