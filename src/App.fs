@@ -133,12 +133,17 @@ module ParseFloat =
             console.group "double.Parse"
             console.log(System.Double.Parse x)
         systemFloatParse "1.2"
+
 module JQueryMap =
     type IJQuery =
-        abstract css : string * string -> IJQuery
+        abstract css : string -> string -> IJQuery
         abstract addClass : string -> IJQuery
+        // for awhile not using .on for event attaching was listed as deprecated in jQuery (or a bad practice, I don't remember which)
+        // there's also an overload that actually triggers a click
         [<Emit("$0.click($1)")>]
         abstract click : (obj -> unit) -> IJQuery
+        [<Emit("$0.click()")>]
+        abstract click : unit -> IJQuery
         [<Emit("$0.on('click', $1)")>]
         abstract onClick : (obj -> unit) -> IJQuery
     [<Emit("window['$']($0)")>]
@@ -155,9 +160,41 @@ module JQueryMap =
 
     [<Emit("$1.click($0)")>]
     let click (handler: obj -> unit)  (el: IJQuery) : IJQuery = jsNative
-    select("#main")
-        .addClass("fancy")
-        .click(fun ev -> console.log("clicked"))
-        .css("background-color", "red")
-    |> ignore
-    ()
+
+    // methodChainingSample
+    let sample () =
+        select("#main")
+            .addClass("fancy")
+            .click(fun ev -> console.log("clicked"))
+            .css("background-color")("red")
+            // method chaining appears to fail at this point
+            // .click() <- doesn't compile
+            |> fun x -> x.click()
+        |> ignore
+    // sample()
+
+    //shadowing sequence sample
+    let anotherSample () =
+        console.group("anotherSample")
+        let main = select("#main")
+        console.log(main)
+        let main = main.addClass("fancy2")
+        let main = main.onClick(fun ev -> console.log("clicked2"); console.log(ev))
+        let main = main.css "background-color" "red"
+        let main = main.click()
+
+        console.groupEnd()
+    anotherSample()
+
+    // piping sequence sample
+    let anotherSample2() =
+        console.group "anotherSample2"
+        select "#main"
+        |> addClass "fancy3"
+        |> click (fun ev -> console.log("clicked3"))
+        |> css "background-color" "blue"
+        |> ignore<IJQuery>
+    // anotherSample2()
+
+
+    console.log("jQuery stuff done!")
