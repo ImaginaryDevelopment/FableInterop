@@ -237,6 +237,7 @@ module ObjectLiterals =
         abstract amount : int with get,set
         abstract unit : string with get,set
 
+
     let parameter = createEmpty<AddTimeProps>
     parameter.current <- DateTime.Now
     parameter.amount <- 20
@@ -248,3 +249,9 @@ type TimeUnit =
     | Months
     | Years
 console.log(TimeUnit.Months)
+// apparently this doens't work =(
+module ExtensionProperties =
+    open ObjectLiterals
+    type AddTimeProps with
+        member x.Unit : TimeUnit = TimeUnit.Months
+    console.log(ObjectLiterals.parameter)
