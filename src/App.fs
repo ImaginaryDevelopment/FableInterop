@@ -136,7 +136,7 @@ module ParseFloat =
 
 module JQueryMap =
     type IJQuery =
-        abstract css : string -> string -> IJQuery
+        abstract css : string * string -> IJQuery
         abstract addClass : string -> IJQuery
         // for awhile not using .on for event attaching was listed as deprecated in jQuery (or a bad practice, I don't remember which)
         // there's also an overload that actually triggers a click
@@ -146,6 +146,7 @@ module JQueryMap =
         abstract click : unit -> IJQuery
         [<Emit("$0.on('click', $1)")>]
         abstract onClick : (obj -> unit) -> IJQuery
+
     [<Emit("window['$']($0)")>]
     let select (selector:string) : IJQuery = jsNative
 
@@ -155,10 +156,14 @@ module JQueryMap =
     [<Emit("$2.css($0, $1)")>]
     let css (prop: string) (value: string) (el: IJQuery) : IJQuery = jsNative
 
-    [<Emit("$1.addClass($0)")>]
+    // I don't see any difference in the resulting code in this being here, vs it not being here (except anotherSample2)
+    // |> fun x -> x.addClass results in ugly code either way
+    // |> addClass "fancy3" seems to result in pretty code
+    [<Emit("$1\r\n.addClass($0)")>]
     let addClass (className: string) (el: IJQuery) : IJQuery = jsNative
 
-    [<Emit("$1.click($0)")>]
+    // \r\n in the emit doesn't appear to help the output =(
+    [<Emit("$1\r\n.click($0)")>]
     let click (handler: obj -> unit)  (el: IJQuery) : IJQuery = jsNative
 
     // methodChainingSample
@@ -166,12 +171,10 @@ module JQueryMap =
         select("#main")
             .addClass("fancy")
             .click(fun ev -> console.log("clicked"))
-            .css("background-color")("red")
-            // method chaining appears to fail at this point
-            // .click() <- doesn't compile
-            |> fun x -> x.click()
+            .css("background-color", "red")
+            .click()
         |> ignore
-    // sample()
+    sample()
 
     //shadowing sequence sample
     let anotherSample () =
@@ -180,8 +183,9 @@ module JQueryMap =
         console.log(main)
         let main = main.addClass("fancy2")
         let main = main.onClick(fun ev -> console.log("clicked2"); console.log(ev))
-        let main = main.css "background-color" "red"
-        let main = main.click()
+        // sadly this maps to _main not $main like it would in javascript
+        let ``$main`` = main.css ("background-color", "red")
+        let main = ``$main``.click()
 
         console.groupEnd()
     anotherSample()
@@ -190,11 +194,14 @@ module JQueryMap =
     let anotherSample2() =
         console.group "anotherSample2"
         select "#main"
+        // this produces horribly ugly code for some reason
+        // |> fun x -> x.addClass "fancy3"
         |> addClass "fancy3"
         |> click (fun ev -> console.log("clicked3"))
+        // piping still works? are the .css calls above using what the emit says to use?
         |> css "background-color" "blue"
         |> ignore<IJQuery>
-    // anotherSample2()
+    anotherSample2()
 
 
     console.log("jQuery stuff done!")
