@@ -6,6 +6,7 @@ open Fable.Import
 open Fable.Import.Browser
 
 // following https://medium.com/@zaid.naom/f-interop-with-javascript-in-fable-the-complete-guide-ccc5b896a59f
+console.clear()
 console.log("Fable is up and running...")
 
 [<Emit("undefined")>]
@@ -93,8 +94,13 @@ module ParseFloatInefficient =
     | None -> console.log("No result found")   //  logs "No result found"
 
 module ParseFloat =
+    // other implementations can evaluate $0 twice, if they were complex functions, they would run twice
+    // create a function to hold the result of +input and check it for isNaN, return null if so, otherwise the number value
     [<Emit("(x => isNaN(x) ? null : x)(+$0)")>]
     let parseFloat (input : string) : float option = jsNative
+    parseFloat("5x")
+    |> fun x -> console.log(x)
+
     module DoubleTryParse =
         let systemFloatParse x =
             console.group "double.TryParse"
