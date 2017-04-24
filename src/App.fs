@@ -389,6 +389,24 @@ module Npms =
     // this overload pads with spaces
     console.log(leftPadWhitespace "4" 3)
 
+module ErasedDUs =
+    open System
+    // a function with one parameter which can be a string, int, or dateTime
+    // this compiles: but since it doesn't exist, the javascript throws
+    // [<Emit("imaginary.func")>]
+    // let myFunc (x: U3<string,int,DateTime>): string = jsNative
+
+    let foo() = importAll<unit> "./custom2.js"
+
+    [<Emit("imaginaryfunc($0)")>]
+    let imaginaryfunc(x: U3<string,int,DateTime>): string = jsNative // importDefault "./custom2.js"
+    let result = imaginaryfunc(!^ "string value")
+    console.log(result)
+    let result2 = imaginaryfunc(!^ 4)
+    console.log(result2)
+
+
+
 
 
 
