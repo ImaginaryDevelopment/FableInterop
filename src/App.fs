@@ -421,15 +421,32 @@ module ErasedDUs =
 module FableInteracting =
     [<Emit("Date")>]
     let Date : obj = jsNative
-    [<Emit("Array.isArray")>]
-    let isArray : obj -> bool = jsNative
     let instance :obj = createNew Date ()
     console.log(instance)
+
+
+    let anArray = [| box 4; box "hello"|]
     // apparently fable tries to use new ES2015 TypedArrays for arrays
     let typedArray = [| 4;3;2 |]
+    defineGlobal "typedArray" typedArray
     console.log(typedArray)
-    // returns false
-    console.log(isArray typedArray)
+    let testIsArrayMethod title (f:obj->bool) =
+        console.group (sprintf "testIsArrayMethod %s" title)
+        console.log(f anArray)
+        console.log(f typedArray)
+        console.groupEnd()
+
+    [<Emit("Array.isArray")>]
+    let isArray : obj -> bool = jsNative
+    testIsArrayMethod "isArray" isArray
+    // SO says this one is faster and 'best'
+    [<Emit("$0.constructor === Array")>]
+    let isArray2 (x:'A) : bool = jsNative
+    testIsArrayMethod "array2" isArray2
+
+    [<Emit("$0 instanceof Array")>]
+    let isArray3 (x:'A) = jsNative
+    testIsArrayMethod "isArray3" isArray3
 
 
 
