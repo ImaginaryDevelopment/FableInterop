@@ -133,3 +133,31 @@ module ParseFloat =
             console.group "double.Parse"
             console.log(System.Double.Parse x)
         systemFloatParse "1.2"
+module JQueryMap =
+    type IJQuery =
+        abstract css : string * string -> IJQuery
+        abstract addClass : string -> IJQuery
+        [<Emit("$0.click($1)")>]
+        abstract click : (obj -> unit) -> IJQuery
+        [<Emit("$0.on('click', $1)")>]
+        abstract onClick : (obj -> unit) -> IJQuery
+    [<Emit("window['$']($0)")>]
+    let select (selector:string) : IJQuery = jsNative
+
+    [<Emit("window['$']($0)")>]
+    let ready (handler: unit -> unit) : unit = jsNative
+
+    [<Emit("$2.css($0, $1)")>]
+    let css (prop: string) (value: string) (el: IJQuery) : IJQuery = jsNative
+
+    [<Emit("$1.addClass($0)")>]
+    let addClass (className: string) (el: IJQuery) : IJQuery = jsNative
+
+    [<Emit("$1.click($0)")>]
+    let click (handler: obj -> unit)  (el: IJQuery) : IJQuery = jsNative
+    select("#main")
+        .addClass("fancy")
+        .click(fun ev -> console.log("clicked"))
+        .css("background-color", "red")
+    |> ignore
+    ()
