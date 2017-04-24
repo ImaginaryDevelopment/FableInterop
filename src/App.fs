@@ -320,4 +320,64 @@ module LiteralObjectInline =
         ]
     console.log(literalObject2)
 
+module ImportsCalls =
+    let someJson = "{ \"SpecialProp\": \"hello\" }"
+    let t fParse fGetValue =
+        let json = someJson
+
+        match fParse json with
+        | Some objLiteral ->
+            console.log(objLiteral)
+            match fGetValue objLiteral "SpecialProp" with
+            | Some result -> console.log(sprintf "success:%A" result)
+            | None -> console.log "No such property was found"
+        | None ->
+            console.log("Json parsing did not succeed")
+module Imports1 =
+    let parseJson : string -> obj option = import "parseJson" "./custom.js"
+    let getValue : obj -> string -> obj option = import "getValue" "./custom.js"
+    ImportsCalls.t parseJson getValue
+
+module Imports2 =
+    [<Import("parseJson", "./custom.js")>]
+    let parseJson : string -> obj option = jsNative
+    [<Import("getValue", "./custom.js")>]
+    let getValue : obj -> string -> obj option = jsNative
+    ImportsCalls.t parseJson getValue
+// my own experimentation Import modules
+module Imports3 =
+    [<Import("parseJson", "./custom.js")>]
+    let parseJson (json : string) : obj option = jsNative
+    [<Import("getValue", "./custom.js")>]
+    let getValue (x: obj) (propName:string) : obj option = jsNative
+    ImportsCalls.t parseJson getValue
+
+module ImportingAll =
+    // [<AbstractClass>]
+    type Parse =
+        abstract parseJson : string -> obj option
+        abstract getValue : obj -> string -> obj option
+    let parse = importAll<Parse> "./custom"
+    let parse2 : Parse = importAll "./custom"
+    [<Import("*", "./custom")>]
+    let parse3 : Parse = jsNative
+    console.groupCollapsed "ImportingAll"
+
+    let result = parse.parseJson "{ }"
+    console.log(result)
+    // ugly resulting code
+    parse2.parseJson ImportsCalls.someJson
+    |> fun x -> console.log(x)
+    // pretty resulting code
+    console.log(parse2.parseJson ImportsCalls.someJson)
+
+    console.groupEnd()
+
+module ImportSingle =
+    let specialValue : string = importDefault "./default.js"
+    console.log(specialValue)
+
+
+
+
 
