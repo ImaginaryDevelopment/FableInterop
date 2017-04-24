@@ -377,6 +377,17 @@ module ImportSingle =
     let specialValue : string = importDefault "./default.js"
     console.log(specialValue)
 
+module Npms =
+    open System
+    let leftPad : string -> int -> char -> string = importDefault "left-pad"
+
+    let paddedNumber = leftPad "4" 4 '0'
+    console.log(paddedNumber)
+
+    // another overload of the function
+    let leftPadWhitespace : string -> int -> string = importDefault "left-pad"
+    // this overload pads with spaces
+    console.log(leftPadWhitespace "4" 3)
 
 
 
