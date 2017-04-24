@@ -12,6 +12,9 @@ console.log("Fable is up and running...")
 
 [<Emit("undefined")>]
 let undefined : obj = jsNative
+
+[<Emit("window[$0] = $1")>]
+let defineGlobal (name:string) (x:'A) : unit = jsNative
 console.log(undefined)
 
 [<Emit("1")>]
@@ -249,6 +252,7 @@ type TimeUnit =
     | Months
     | [<CompiledName("YEARS")>] Years
 console.log(TimeUnit.Months)
+
 // apparently this doesn't work =(
 module ExtensionProperties =
     open ObjectLiterals
@@ -258,6 +262,7 @@ module ExtensionProperties =
 
     let showExtensionPropertyDoesntWork() =
         console.log(ObjectLiterals.parameter)
+
 module EnumedObjectLiteral =
     open System
     type AddTimeProps =
@@ -270,6 +275,7 @@ module EnumedObjectLiteral =
     parameter.amount <- 30
     parameter.unit <- TimeUnit.Years
     console.log(parameter)
+
 module Pojos =
     // for libraries that require a plain object (like React components)
     [<Pojo>]
@@ -280,3 +286,38 @@ module Pojos =
     let me = {person with name ="Zaid"}
     let stillMe = {me with age = 20}
     console.log(stillMe)
+
+// author acknowledges this is not idiomatic F#, but it demonstrates some fable features
+module DULiteral =
+    type Person =
+        | Name of string
+        | Age of int
+    let person = [Name "Mike"; Age 35]
+    console.log(person)
+    // window["person"] = person;
+    defineGlobal "person" person
+    let mkPerson (p:Person list) = keyValueList CaseRules.LowerFirst p
+    console.log(mkPerson person)
+
+    let p = [Name "Mike"; Age 35; unbox ("someProp", 20); !!("otherProp",40)]
+    console.log(mkPerson p)
+
+module LiteralObjectInline =
+    let literalObject =
+        createObj [
+            "prop" ==> "value"
+            "anotherProp" ==> 5
+        ]
+    console.log literalObject
+    let literalObject2 =
+        createObj [
+            "props" ==> "value"
+            "anotherProp" ==> 5
+            "nested" ==>
+                createObj [
+                        "nestedProp" ==> "some-value"
+                ]
+        ]
+    console.log(literalObject2)
+
+
