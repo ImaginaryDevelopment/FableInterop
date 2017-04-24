@@ -83,9 +83,42 @@ module BadParseFloat =
 
 BadParseFloat.directNativeParseFloat()
 
-[<Emit("isNaN(+$0) ? null : (+$0)")>]
-let parseFloat (input : string) : float option = jsNative
+module ParseFloatInefficient =
 
-match parseFloat "5x" with
-| Some result -> console.log(result)       //  Parsing fails as it should
-| None -> console.log("No result found")   //  logs "No result found"
+    [<Emit("isNaN(+$0) ? null : (+$0)")>]
+    let parseFloat (input : string) : float option = jsNative
+
+    match parseFloat "5x" with
+    | Some result -> console.log(result)       //  Parsing fails as it should
+    | None -> console.log("No result found")   //  logs "No result found"
+
+module ParseFloat =
+    [<Emit("(x => isNaN(x) ? null : x)(+$0)")>]
+    let parseFloat (input : string) : float option = jsNative
+    module DoubleTryParse =
+        let systemFloatParse x =
+            console.group "double.TryParse"
+            match System.Double.TryParse x with
+            | true, x -> console.log(x)
+            | false, _ -> console.log("double.TryParse failed")
+            console.groupEnd()
+
+        let bizarreOrUnexpectedMaybeBugs =
+            console.group "buggy?"
+            // this acts strangely, the systemFloatParse function doesn't appear to be evaluated, instead it just prints an empty object {}
+            systemFloatParse "1.2" // returns unit (but doesn't evaluate the function!
+            // x is unit, so it logging an empty object {} makes sense
+            |> fun x -> console.log(x)
+            // proof that I'm not returning
+            |> ignore<obj>
+            // this does the same
+            console.log(systemFloatParse "1.2")
+            console.groupEnd()
+
+        // this does what I would expect
+        systemFloatParse "1.2"
+    module DoubleParse =
+        let systemFloatParse x =
+            console.group "double.Parse"
+            console.log(System.Double.Parse x)
+        systemFloatParse "1.2"
