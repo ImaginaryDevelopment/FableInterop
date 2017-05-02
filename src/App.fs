@@ -85,7 +85,7 @@ module BadParseFloat =
 
         // Correct parsing
         match parseFloat' "5.3" with
-        | Some value -> console.log(value)
+        | Some value123 -> console.log(value123)
         | None -> console.log("parseFloat failed!")
 
         // Parsing fails
@@ -97,6 +97,8 @@ module BadParseFloat =
         | Some value -> console.log(value)
         | None -> console.log("parseFloat failed!")
         console.groupEnd()
+        if false then
+            raise <| System.NotImplementedException("bad directnativeparsefloat")
 
 
 BadParseFloat.directNativeParseFloat()
@@ -217,7 +219,7 @@ module JQueryMap =
 
     // piping sequence sample
     let anotherSample2() =
-        console.group "anotherSample2"
+        console.group "anotherSample5"
         JQuery.select "#main"
         // this produces horribly ugly code for some reason
         // |> fun x -> x.addClass "fancy3"
