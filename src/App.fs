@@ -359,6 +359,7 @@ module Imports2 =
     [<Import("getValue", "./custom.js")>]
     let getValue : obj -> string -> obj option = jsNative
     ImportsCalls.t parseJson getValue
+
 // my own experimentation Import modules
 module Imports3 =
     [<Import("parseJson", "./custom.js")>]
@@ -450,7 +451,49 @@ module FableInteracting =
     let isArray3 (x:'A) = jsNative
     testIsArrayMethod "isArray3" isArray3
 
+module JsHelpers =
+    [<Emit("typeof $0")>]
+    let getTypeOf x :string = jsNative
 
+open JsHelpers
+module JsxHelpers =
+    type IReactProps =
+        abstract member spread : obj
+
+open JsxHelpers
+module PM =
+    // Es6 modules automatically enable strict mode
+    // useStrict()
+    let mapDisplayFromPaymentItemTypeId x =
+        match x with
+        | "Payment"
+        | "EraPayment" -> "Payment"
+        | "EraAdjustment" -> "Adjustment"
+        | x -> x
+    [<Emit("$0[$1]")>]
+    let getDynProp (propName:string) (o:obj) = jsNative
+
+    // but in js properties can also be numbers, how to cope?
+    let isfuncOrNullPropType (props:IReactProps) (propName:string) =
+        let value:obj =
+            getDynProp propName props
+        let getOrSpread name : _ option =
+            // props?name || props.spread && props.spread?name
+            if not <| isUndefined props?name then
+                Some (props?name)
+            elif not <| isUndefined props.spread then
+                getDynProp name props.spread
+            else
+                None
+        if isNull value || getTypeOf value = "function" then
+            null
+        else null
+
+
+
+
+
+// module ComponentsJsx =
 
 
 
