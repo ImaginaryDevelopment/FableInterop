@@ -511,23 +511,31 @@ module Jasmine =
     [<Emit("beforeEach($0);")>]
     let beforeEach (f:System.Action) = jsNative
     [<Emit("describe($0,$1)")>]
-    let describe (x:string) (f: System.Action) = jsNative
+    let describe (x:string) (f: System.Action) :unit = jsNative
 
     [<Emit("it($0,$1)")>]
     let it (x:string) (f:System.Action) = jsNative
     type IJasmineExpect =
         abstract member toEqual: obj -> unit
+        abstract member toBeFalsy: unit -> unit
+        abstract member toBeTruthy: unit -> unit
+        abstract member toHaveBeenCalledWith: obj -> unit
+        abstract member toThrowError: string -> unit
+
     [<Emit("jasmine")>]
     let jasmine : IJasmine = jsNative
 
     [<Emit("expect($0)")>]
     let expect o : IJasmineExpect = jsNative
+    [<Emit("spyOn($0,$1)")>]
+    let spyOn (o:obj) (method:string) : unit = jsNative
 
     module Sample =
         [<AllowNullLiteralAttribute>]
         type Song =
             abstract member name:string
-            abstract member create: JsConstructor
+            // abstract member persistFavoriteStatus:bool with get,set
+            abstract member persistFavoriteStatus: System.Func<unit, unit>
         type IJasmineExpect with
             [<Emit("($0).toBePlaying($1)")>]
             member x.toBePlaying (s:Song) = jsNative
@@ -535,10 +543,16 @@ module Jasmine =
         let createSong() : Song = jsNative
         [<AllowNullLiteralAttribute>]
         [<Global>]
-        type Player ()=
+        // [<Import("", from="../public/jasmine/src/Player.js")>]
+        type Player () =
             member __.play : Song -> unit = jsNative
+            member __.pause : unit -> unit = jsNative
             member __.currentlyPlayingSong : Song = jsNative
             member __.isPlaying:bool = jsNative
+            member __.resume: unit -> unit = jsNative
+            member __.makeFavorite: unit -> unit = jsNative
+        // this imports, but the target file doesn't export anything so... no dice
+        // importAll "../public/jasmine/src/Player.js" |> ignore
 
         module SpecHelpers =
             beforeEach(System.Action(fun _ ->
@@ -550,6 +564,7 @@ module Jasmine =
                 )
             ))
         // appears to have worked, kinda/sorta?
+        // could shim it I think? https://webpack.js.org/guides/shimming/
         // importDefault "../public/jasmine/src/Player.js"
         describe "Player" (System.Action(fun _ ->
             let mutable player :Player = null
@@ -561,63 +576,40 @@ module Jasmine =
             it "should be able to play a Song" (System.Action(fun () ->
                 player.play(song)
                 expect(player.currentlyPlayingSong).toEqual(song)
-                ()
+                // custom matcher
                 expect(player).toBePlaying(song)
             ))
+            describe "when a song has been paused" (System.Action(fun () ->
+                beforeEach (System.Action(fun() ->
+                    player.play song
+                    player.pause()
+                    ))
+
+                it "should indicate that the song is currently paused" (System.Action(fun () ->
+                    expect(player.isPlaying).toBeFalsy()
+                ))
+                it "should be possible to resume" (System.Action(fun () ->
+                    player.resume()
+                    expect(player.isPlaying) .toBeTruthy()
+                    expect(player.currentlyPlayingSong).toEqual(song)
+                ))
+            ))
+            it "tells the current song if the user has made it a favorite" (System.Action(fun() ->
+                spyOn song "persistFavoriteStatus"
+                player.play(song)
+                player.makeFavorite()
+                // this line fails to pass the delegate, instead it provides a function that calls the delegate
+                expect((fun () -> song.persistFavoriteStatus)()).toHaveBeenCalledWith(true)
+            ))
+            describe "resume" (System.Action(fun() ->
+                it "should throw an exception if song is already playing" (System.Action(fun() ->
+                    player.play(song)
+                    expect(System.Action(fun () ->
+                            player.resume()
+                    )).toThrowError("song is already playing")
+                ))
+            ))
         ))
-
-//   it("should be able to play a Song", function() {
-//     player.play(song);
-//     expect(player.currentlyPlayingSong).toEqual(song);
-
-//     //demonstrates use of custom matcher
-//     expect(player).toBePlaying(song);
-//   });
-
-//   describe("when song has been paused", function() {
-//     beforeEach(function() {
-//       player.play(song);
-//       player.pause();
-//     });
-
-//     it("should indicate that the song is currently paused", function() {
-//       expect(player.isPlaying).toBeFalsy();
-
-//       // demonstrates use of 'not' with a custom matcher
-//       expect(player).not.toBePlaying(song);
-//     });
-
-//     it("should be possible to resume", function() {
-//       player.resume();
-//       expect(player.isPlaying).toBeTruthy();
-//       expect(player.currentlyPlayingSong).toEqual(song);
-//     });
-//   });
-
-//   // demonstrates use of spies to intercept and test method calls
-//   it("tells the current song if the user has made it a favorite", function() {
-//     spyOn(song, 'persistFavoriteStatus');
-
-//     player.play(song);
-//     player.makeFavorite();
-
-//     expect(song.persistFavoriteStatus).toHaveBeenCalledWith(true);
-//   });
-
-//   //demonstrates use of expected exceptions
-//   describe("#resume", function() {
-//     it("should throw an exception if song is already playing", function() {
-//       player.play(song);
-
-//       expect(function() {
-//         player.resume();
-//       }).toThrowError("song is already playing");
-//     });
-//   });
-// });
-
-
-
 
 // module ComponentsJsx =
 
