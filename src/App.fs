@@ -495,6 +495,17 @@ let createImported (x:'T) = jsNative
 
 
 module Jasmine =
+    [<Pojo>]
+    type Result = {
+        pass:bool
+        message:string
+    }
+    [<Pojo>]
+    type CustomMatcher<'TActual,'TExpected> = {
+        compare:System.Func<'TActual,'TExpected,Result>
+    }
+    type IJasmine =
+        abstract member addMatchers : obj -> unit
     [<Emit("$0 = null;")>]
     let declare (name:string) = jsNative
     [<Emit("beforeEach($0);")>]
@@ -505,26 +516,41 @@ module Jasmine =
     [<Emit("it($0,$1)")>]
     let it (x:string) (f:System.Action) = jsNative
     type IJasmineExpect =
-        abstract member toEqual: obj -> obj -> unit
+        abstract member toEqual: obj -> unit
+    [<Emit("jasmine")>]
+    let jasmine : IJasmine = jsNative
 
     [<Emit("expect($0)")>]
     let expect o : IJasmineExpect = jsNative
 
     module Sample =
-        // let Player :obj = importDefault "Player"
         [<AllowNullLiteralAttribute>]
         type Song =
             abstract member name:string
             abstract member create: JsConstructor
+        type IJasmineExpect with
+            [<Emit("$_.toBePlaying($0)")>]
+            member __.toBePlaying (x:Song) = jsNative
         [<Emit("new Song()")>]
         let createSong() : Song = jsNative
         [<AllowNullLiteralAttribute>]
         type Player =
             abstract member play : Song -> unit
             abstract member currentlyPlayingSong : Song
+            abstract member isPlaying:bool
 
         [<Emit("new Player()")>]
         let createPlayer () :Player = jsNative
+        module SpecHelpers =
+            beforeEach(System.Action(fun _ ->
+                jasmine.addMatchers (
+                    createObj ["toBePlaying", box { compare= (System.Func<_,_,_>(fun actual expected ->
+                        let player :Player = actual
+                        {pass=player.currentlyPlayingSong = expected && player.isPlaying;message=null}
+                    ))}]
+                )
+            ))
+        // let Player :obj = importDefault "Player"
         // let Player () = jsNative
         describe "Player" (System.Action(fun _ ->
             let mutable player :Player = null
@@ -535,8 +561,9 @@ module Jasmine =
             ))
             it "should be able to play a Song" (System.Action(fun () ->
                 player.play(song)
-                expect(player.currentlyPlayingSong).toEqual(song);
+                expect(player.currentlyPlayingSong).toEqual(song)
                 ()
+                expect(player).toBePlaying(song)
             ))
         ))
 
