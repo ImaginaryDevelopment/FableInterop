@@ -639,16 +639,25 @@ module Reacting =
         [<Emit("$0.render()")>]
         member x.render: unit -> ReactType = jsNative
     [<Global>]
-    type React =
-        static member createClass: obj -> ReactClass = jsNative
+    module React =
+        let createclass : obj -> ReactClass = jsNative
+        type Component() = class end
+    // [<Global>]
+    // type React =
+        // static member createClass: obj -> ReactClass = jsNative
+        // type Component() = class end
     // [<Emit("React.createClass($0)")>]
 module ComponentsJsx =
+    open Reacting
     // should this be
     // [<Global>]
     let mutable IsAjaxWrapperDebug = false
     let debugAjaxWrapper () =
         if IsAjaxWrapperDebug then
             console.log(arguments)
+    type NavButton() =
+        inherit React.Component()
+    // let NavButton = React.createClass (createObj ["displayName", box "NavButton";])
     ()
 
 
