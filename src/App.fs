@@ -37,26 +37,15 @@ console.log(result)
 
 [<Emit("$0 === undefined")>]
 // calling this isUndefined1, because I have a different preference for the real isUndefined
-let isUndefined1 (x: 'a) : bool = jsNative
+let isUndefined (x: 'a) : bool = jsNative
+
+[<Emit("$0 != null")>]
+let isDefined (x: 'a) : bool = jsNative
 
 // null is not undefined in my version (which is great for differentiating between passing null, or forgetting to pass a value, or some other things with objects I think)
-[<Emit("!($0 != null)")>]
-let isUndefined (x:'A) : bool = jsNative
+// [<Emit("!($0 != null)")>]
+// let isUndefined (x:'A) : bool = jsNative
 
-// if we don't specify 'a is obj then this doesn't compile
-let logUndefinedTests (f:obj -> bool) =
-    console.group("logUndefinedTests")
-    // javascript special cases of concern: "", 0, false, null
-    console.log(f 5)
-    console.log(f "")
-    console.log(f [||])
-    console.log(f false)
-    console.log(f 0)
-    // this one is a difference with mine
-    console.log(f null)
-    console.groupEnd()
-logUndefinedTests isUndefined1
-logUndefinedTests isUndefined
 
 [<Emit("$0 + $1")>]
 let add (x:int) (y:int) = jsNative
@@ -470,25 +459,130 @@ module PM =
         | "EraPayment" -> "Payment"
         | "EraAdjustment" -> "Adjustment"
         | x -> x
-    [<Emit("$0[$1]")>]
+    [<Emit("$1[$0]")>]
     let getDynProp (propName:string) (o:obj) = jsNative
 
     // but in js properties can also be numbers, how to cope?
-    let isfuncOrNullPropType (props:IReactProps) (propName:string) =
+    [<Erase>]
+    type StringOrInt =
+        | String of string
+        | Number of int
+    let isFuncOrNullPropType (props:IReactProps) (propName:string) componentName =
         let value:obj =
             getDynProp propName props
-        let getOrSpread name : _ option =
+        let getOrSpread name : obj option =
             // props?name || props.spread && props.spread?name
-            if not <| isUndefined props?name then
-                Some (props?name)
-            elif not <| isUndefined props.spread then
+            if isDefined (getDynProp name props) then
+                Some (getDynProp name props)
+            elif isDefined props.spread then
                 getDynProp name props.spread
             else
                 None
         if isNull value || getTypeOf value = "function" then
             null
-        else null
+        else
+            let mutable name = componentName
+            // getOrSpread "id"
+            // |> Option.iter(fun n -> name <- name + "#" + n)
+            match getOrSpread "id" with
+            | Some n -> name <- name + "#" + (string n)
+            | None -> ()
+            name
 
+
+[<Emit("new $0()")>]
+let createImported (x:'T) = jsNative
+
+
+module Jasmine =
+    [<Emit("$0 = null;")>]
+    let declare (name:string) = jsNative
+    [<Emit("beforeEach($0);")>]
+    let beforeEach (f:System.Action) = jsNative
+    [<Emit("describe($0,$1)")>]
+    let describe (x:string) (f: System.Action) = jsNative
+    [<Emit("player = new Player();")>]
+    let createDammit = jsNative
+    [<Emit("new Player()")>]
+    let createPlayer () = jsNative
+    [<Emit("new $0()")>]
+    let createSomething name = jsNative
+
+    module Sample =
+        // let Player :obj = importDefault "Player"
+        [<AllowNullLiteralAttribute>]
+        type Player =
+            abstract member play : string -> unit
+            abstract member currentlyPlayingSong : string
+        // let Player () = jsNative
+        describe "Player" (System.Action(fun _ ->
+            let mutable player :Player = null
+            let mutable song :obj = null
+            beforeEach (System.Action(fun _ ->
+                createDammit
+                player <- createPlayer ()
+                player <- createSomething "Player"
+                song <- createNew "Song" ()
+            ))
+        ))
+//     describe("Player", function() {
+//   var player;
+//   var song;
+
+//   beforeEach(function() {
+//     player = new Player();
+//     song = new Song();
+//   });
+
+//   it("should be able to play a Song", function() {
+//     player.play(song);
+//     expect(player.currentlyPlayingSong).toEqual(song);
+
+//     //demonstrates use of custom matcher
+//     expect(player).toBePlaying(song);
+//   });
+
+//   describe("when song has been paused", function() {
+//     beforeEach(function() {
+//       player.play(song);
+//       player.pause();
+//     });
+
+//     it("should indicate that the song is currently paused", function() {
+//       expect(player.isPlaying).toBeFalsy();
+
+//       // demonstrates use of 'not' with a custom matcher
+//       expect(player).not.toBePlaying(song);
+//     });
+
+//     it("should be possible to resume", function() {
+//       player.resume();
+//       expect(player.isPlaying).toBeTruthy();
+//       expect(player.currentlyPlayingSong).toEqual(song);
+//     });
+//   });
+
+//   // demonstrates use of spies to intercept and test method calls
+//   it("tells the current song if the user has made it a favorite", function() {
+//     spyOn(song, 'persistFavoriteStatus');
+
+//     player.play(song);
+//     player.makeFavorite();
+
+//     expect(song.persistFavoriteStatus).toHaveBeenCalledWith(true);
+//   });
+
+//   //demonstrates use of expected exceptions
+//   describe("#resume", function() {
+//     it("should throw an exception if song is already playing", function() {
+//       player.play(song);
+
+//       expect(function() {
+//         player.resume();
+//       }).toThrowError("song is already playing");
+//     });
+//   });
+// });
 
 
 
