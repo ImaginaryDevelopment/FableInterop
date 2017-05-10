@@ -444,50 +444,6 @@ module JsHelpers =
     [<Emit("typeof $0")>]
     let getTypeOf x :string = jsNative
 
-open JsHelpers
-module JsxHelpers =
-    type IReactProps =
-        abstract member spread : obj
-
-open JsxHelpers
-module PM =
-    // Es6 modules automatically enable strict mode
-    // useStrict()
-    let mapDisplayFromPaymentItemTypeId x =
-        match x with
-        | "Payment"
-        | "EraPayment" -> "Payment"
-        | "EraAdjustment" -> "Adjustment"
-        | x -> x
-    // [<Emit("$1[$0]")>]
-    // let getDynProp (propName:string) (o:obj) = jsNative
-
-    // but in js properties can also be numbers, how to cope?
-    [<Erase>]
-    type StringOrInt =
-        | String of string
-        | Number of int
-    let isFuncOrNullPropType (props:IReactProps) (propName:string) componentName =
-        let value:obj =
-            box props?(propName)
-        let getOrSpread name : obj option =
-            // props?name || props.spread && props.spread?name
-            if isDefined (props?(name)) then
-                Some (box props?(name))
-            elif isDefined props.spread then
-                Some (box props.spread?(name))
-            else
-                None
-        if isNull value || getTypeOf value = "function" then
-            null
-        else
-            let mutable name = componentName
-            // getOrSpread "id"
-            // |> Option.iter(fun n -> name <- name + "#" + n)
-            match getOrSpread "id" with
-            | Some n -> name <- name + "#" + (string n)
-            | None -> ()
-            name
 
 
 [<Emit("new $0()")>]
@@ -613,7 +569,52 @@ module Jasmine =
             ))
         ))
 
-// module ComponentsJsx =
+
+open JsHelpers
+module JsxHelpers =
+    type IReactProps =
+        abstract member spread : obj
+
+open JsxHelpers
+module PM =
+    // Es6 modules automatically enable strict mode
+    // useStrict()
+    let mapDisplayFromPaymentItemTypeId x =
+        match x with
+        | "Payment"
+        | "EraPayment" -> "Payment"
+        | "EraAdjustment" -> "Adjustment"
+        | x -> x
+
+    // but in js properties can also be numbers, how to cope?
+    [<Erase>]
+    type StringOrInt =
+        | String of string
+        | Number of int
+    let isFuncOrNullPropType (props:IReactProps) (propName:StringOrInt) componentName =
+        let value:obj =
+            box props?(propName)
+        let getOrSpread name : obj option =
+            // props?name || props.spread && props.spread?name
+            if isDefined (props?(name)) then
+                Some (box props?(name))
+            elif isDefined props.spread then
+                Some (box props.spread?(name))
+            else
+                None
+        if isNull value || getTypeOf value = "function" then
+            null
+        else
+            let mutable name = componentName
+            // getOrSpread "id"
+            // |> Option.iter(fun n -> name <- name + "#" + n)
+            match getOrSpread "id" with
+            | Some n -> name <- name + "#" + (string n)
+            | None -> ()
+            name
+module ComponentsJsx =
+    ()
+
 
 
 
