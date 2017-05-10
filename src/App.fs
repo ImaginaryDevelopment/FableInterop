@@ -501,38 +501,44 @@ module Jasmine =
     let beforeEach (f:System.Action) = jsNative
     [<Emit("describe($0,$1)")>]
     let describe (x:string) (f: System.Action) = jsNative
-    [<Emit("player = new Player();")>]
-    let createDammit = jsNative
-    [<Emit("new Player()")>]
-    let createPlayer () = jsNative
-    [<Emit("new $0()")>]
-    let createSomething name = jsNative
+
+    [<Emit("it($0,$1)")>]
+    let it (x:string) (f:System.Action) = jsNative
+    type IJasmineExpect =
+        abstract member toEqual: obj -> obj -> unit
+
+    [<Emit("expect($0)")>]
+    let expect o : IJasmineExpect = jsNative
 
     module Sample =
         // let Player :obj = importDefault "Player"
         [<AllowNullLiteralAttribute>]
+        type Song =
+            abstract member name:string
+            abstract member create: JsConstructor
+        [<Emit("new Song()")>]
+        let createSong() : Song = jsNative
+        [<AllowNullLiteralAttribute>]
         type Player =
-            abstract member play : string -> unit
-            abstract member currentlyPlayingSong : string
+            abstract member play : Song -> unit
+            abstract member currentlyPlayingSong : Song
+
+        [<Emit("new Player()")>]
+        let createPlayer () :Player = jsNative
         // let Player () = jsNative
         describe "Player" (System.Action(fun _ ->
             let mutable player :Player = null
-            let mutable song :obj = null
+            let mutable song :Song = null
             beforeEach (System.Action(fun _ ->
-                createDammit
                 player <- createPlayer ()
-                player <- createSomething "Player"
-                song <- createNew "Song" ()
+                song <- createSong ()
+            ))
+            it "should be able to play a Song" (System.Action(fun () ->
+                player.play(song)
+                expect(player.currentlyPlayingSong).toEqual(song);
+                ()
             ))
         ))
-//     describe("Player", function() {
-//   var player;
-//   var song;
-
-//   beforeEach(function() {
-//     player = new Player();
-//     song = new Song();
-//   });
 
 //   it("should be able to play a Song", function() {
 //     player.play(song);
