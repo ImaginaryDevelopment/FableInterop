@@ -535,6 +535,8 @@ module Jasmine =
         type Song =
             abstract member name:string
             // abstract member persistFavoriteStatus:bool with get,set
+
+            // making this a Func enabled passing a reference to the method, for jasmine testing
             abstract member persistFavoriteStatus: System.Func<unit, unit>
         type IJasmineExpect with
             [<Emit("($0).toBePlaying($1)")>]
@@ -599,7 +601,7 @@ module Jasmine =
                 player.play(song)
                 player.makeFavorite()
                 // this line fails to pass the delegate, instead it provides a function that calls the delegate
-                expect((fun () -> song.persistFavoriteStatus)()).toHaveBeenCalledWith(true)
+                expect(song.persistFavoriteStatus).toHaveBeenCalledWith(true)
             ))
             describe "resume" (System.Action(fun() ->
                 it "should throw an exception if song is already playing" (System.Action(fun() ->
