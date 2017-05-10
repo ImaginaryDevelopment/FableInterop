@@ -577,6 +577,7 @@ open JsHelpers
 module JsxHelpers =
     type IReactProps =
         abstract member spread : obj
+        abstract member displayName:string
 
 open JsxHelpers
 module PM =
@@ -625,6 +626,22 @@ module PM =
             addGetOrSpread (StringOrInt.String "data-id") "[data-id=" "]"
             addGetOrSpread (StringOrInt.String "name") "[name=" "]"
             name
+
+module Reacting =
+    [<Erase>]
+    type ReactType =
+        |Elem of Element
+        |Cls of ReactClass
+        |Value of obj
+    and ReactClass private () =
+        [<Emit("props")>]
+        member x.props : IReactProps = jsNative
+        [<Emit("$0.render()")>]
+        member x.render: unit -> ReactType = jsNative
+    [<Global>]
+    type React =
+        static member createClass: obj -> ReactClass = jsNative
+    // [<Emit("React.createClass($0)")>]
 module ComponentsJsx =
     // should this be
     // [<Global>]
