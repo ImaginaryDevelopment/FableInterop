@@ -1,22 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FSharpLintSettings>
+<!-- it seems the window has to be reloaded at least for changes in here to be picked up -->
   <Analysers>
-
         <NameConventions>
             <Rules>
-                <InterfaceNames></InterfaceNames>
-                <ExceptionNames></ExceptionNames>
-                <RecordFieldNames />
-                <EnumCasesNames />
-                <TypeNames></TypeNames>
                 <MemberNames>
                     <Enabled>false</Enabled>
                 </MemberNames>
-                <UnionCasesNames />
-                <ModuleNames />
-                <LiteralNames />
-                <NamespaceNames />
-
             </Rules>
         </NameConventions>
   </Analysers>
