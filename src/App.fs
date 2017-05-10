@@ -14,6 +14,8 @@ console.log("Fable is up and running...")
 
 [<Emit("undefined")>]
 let undefined : obj = jsNative
+[<Emit("arguments")>]
+let arguments : obj = jsNative
 type Console with
     [<Emit("console.log($0,$1)")>]
     member __.log2 a b = jsNative
@@ -239,6 +241,7 @@ module ObjectLiterals =
     open System
     [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions", "InterfaceNamesMustBeginWithI")>]
     type AddTimeProps =
+
         abstract current : DateTime with get,set
         [<Emit("$0.specialAmount{{=$1}}")>]
         abstract amount : int with get,set
@@ -588,18 +591,21 @@ module PM =
 
     // but in js properties can also be numbers, how to cope?
     [<Erase>]
+    [<RequireQualifiedAccess>]
     type StringOrInt =
         | String of string
         | Number of int
+
+    // this is a custom PropType checker for react
     let isFuncOrNullPropType (props:IReactProps) (propName:StringOrInt) componentName =
         let value:obj =
             box props?(propName)
-        let getOrSpread name : obj option =
+        let getOrSpread name : 'T option =
             // props?name || props.spread && props.spread?name
             if isDefined (props?(name)) then
-                Some (box props?(name))
+                Some (box props?(name) :?> 'T )
             elif isDefined props.spread then
-                Some (box props.spread?(name))
+                Some (box props.spread?(name) :?> 'T)
             else
                 None
         if isNull value || getTypeOf value = "function" then
@@ -608,12 +614,23 @@ module PM =
             let mutable name = componentName
             // getOrSpread "id"
             // |> Option.iter(fun n -> name <- name + "#" + n)
+            let inline addGetOrSpread (propName:StringOrInt) pre post =
+                match getOrSpread propName with
+                | Some (n:string) -> name <- name + pre + n + post
+                | None -> ()
             match getOrSpread "id" with
             | Some n -> name <- name + "#" + (string n)
             | None -> ()
+            addGetOrSpread (StringOrInt.String "data-id") "[data-id=" "]"
+            addGetOrSpread (StringOrInt.String "name") "[name=" "]"
             name
 module ComponentsJsx =
+    let mutable IsAjaxWrapperDebug = false
+    let debugAjaxWrapper () =
+        if IsAjaxWrapperDebug then
+            console.log(arguments)
     ()
+
 
 
 
