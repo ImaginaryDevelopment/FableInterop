@@ -459,8 +459,8 @@ module PM =
         | "EraPayment" -> "Payment"
         | "EraAdjustment" -> "Adjustment"
         | x -> x
-    [<Emit("$1[$0]")>]
-    let getDynProp (propName:string) (o:obj) = jsNative
+    // [<Emit("$1[$0]")>]
+    // let getDynProp (propName:string) (o:obj) = jsNative
 
     // but in js properties can also be numbers, how to cope?
     [<Erase>]
@@ -469,13 +469,13 @@ module PM =
         | Number of int
     let isFuncOrNullPropType (props:IReactProps) (propName:string) componentName =
         let value:obj =
-            getDynProp propName props
+            box props?(propName)
         let getOrSpread name : obj option =
             // props?name || props.spread && props.spread?name
-            if isDefined (getDynProp name props) then
-                Some (getDynProp name props)
+            if isDefined (props?(name)) then
+                Some (box props?(name))
             elif isDefined props.spread then
-                getDynProp name props.spread
+                Some (box props.spread?(name))
             else
                 None
         if isNull value || getTypeOf value = "function" then
@@ -529,34 +529,33 @@ module Jasmine =
             abstract member name:string
             abstract member create: JsConstructor
         type IJasmineExpect with
-            [<Emit("$_.toBePlaying($0)")>]
-            member __.toBePlaying (x:Song) = jsNative
+            [<Emit("($0).toBePlaying($1)")>]
+            member x.toBePlaying (s:Song) = jsNative
         [<Emit("new Song()")>]
         let createSong() : Song = jsNative
         [<AllowNullLiteralAttribute>]
-        type Player =
-            abstract member play : Song -> unit
-            abstract member currentlyPlayingSong : Song
-            abstract member isPlaying:bool
+        [<Global>]
+        type Player ()=
+            member __.play : Song -> unit = jsNative
+            member __.currentlyPlayingSong : Song = jsNative
+            member __.isPlaying:bool = jsNative
 
-        [<Emit("new Player()")>]
-        let createPlayer () :Player = jsNative
         module SpecHelpers =
             beforeEach(System.Action(fun _ ->
                 jasmine.addMatchers (
-                    createObj ["toBePlaying", box { compare= (System.Func<_,_,_>(fun actual expected ->
+                    createObj ["toBePlaying", box (System.Func<_>(fun () -> { compare= (System.Func<_,_,_>(fun actual expected ->
                         let player :Player = actual
                         {pass=player.currentlyPlayingSong = expected && player.isPlaying;message=null}
-                    ))}]
+                    ))}))]
                 )
             ))
-        // let Player :obj = importDefault "Player"
-        // let Player () = jsNative
+        // appears to have worked, kinda/sorta?
+        // importDefault "../public/jasmine/src/Player.js"
         describe "Player" (System.Action(fun _ ->
             let mutable player :Player = null
             let mutable song :Song = null
             beforeEach (System.Action(fun _ ->
-                player <- createPlayer ()
+                player <- Player()
                 song <- createSong ()
             ))
             it "should be able to play a Song" (System.Action(fun () ->
