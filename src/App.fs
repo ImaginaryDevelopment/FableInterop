@@ -618,13 +618,16 @@ module PM =
                 match getOrSpread propName with
                 | Some (n:string) -> name <- name + pre + n + post
                 | None -> ()
-            match getOrSpread "id" with
-            | Some n -> name <- name + "#" + (string n)
-            | None -> ()
+            // match getOrSpread "id" with
+            // | Some n -> name <- name + "#" + (string n)
+            // | None -> ()
+            addGetOrSpread (StringOrInt.String "id") "#" ""
             addGetOrSpread (StringOrInt.String "data-id") "[data-id=" "]"
             addGetOrSpread (StringOrInt.String "name") "[name=" "]"
             name
 module ComponentsJsx =
+    // should this be
+    // [<Global>]
     let mutable IsAjaxWrapperDebug = false
     let debugAjaxWrapper () =
         if IsAjaxWrapperDebug then
