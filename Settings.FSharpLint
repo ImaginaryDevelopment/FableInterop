@@ -1,13 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FSharpLintSettings xmlns="https://github.com/fsprojects/FSharpLint/blob/master/ConfigurationSchema.xsd">
-    <Analysers>
+<FSharpLintSettings>
+  <Analysers>
+
         <NameConventions>
             <Rules>
-                <MemberNamesMustBePascalCase>
+                <InterfaceNames></InterfaceNames>
+                <ExceptionNames></ExceptionNames>
+                <RecordFieldNames />
+                <EnumCasesNames />
+                <TypeNames></TypeNames>
+                <MemberNames>
                     <Enabled>false</Enabled>
-                </MemberNamesMustBePascalCase>
+                </MemberNames>
+                <UnionCasesNames />
+                <ModuleNames />
+                <LiteralNames />
+                <NamespaceNames />
+
             </Rules>
-            <Enabled>false</Enabled>
         </NameConventions>
-    </Analysers>
+  </Analysers>
 </FSharpLintSettings>
