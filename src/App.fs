@@ -440,6 +440,7 @@ module Jasmine =
 
 
 open JsHelpers
+module R = Fable.Helpers.React
 module JsxHelpers =
 
     type IReactProps =
@@ -502,42 +503,77 @@ module ComponentsJsx =
         [<Emit("target.responseText")>]
         member x.targetResponseText :string = jsNative
     type AjaxEvent = Fable.Import.Browser.Event
+    type XMLHttpRequest with
+        [<Emit("$0.send()")>]
+        member x.send() = jsNative
     let mutable IsAjaxWrapperDebug = false
     let debugAjaxWrapper ([<Erase>]any:obj) =
         if IsAjaxWrapperDebug then
             console.log(arguments)
     type JsonString = string
+    module AjaxAssistants =
 
-    [<Pojo>]
-    type AjaxWrapperState = {data:JsonString; searchError:string; loading:bool}
-    [<Pojo>]
-    type AjaxWrapperProps = {renderer:System.Func<obj,obj>}
-    type AjaxWrapper(props) =
-        inherit React.Component<AjaxWrapperProps,AjaxWrapperState>(props)
-        do base.setInitState({data=null; searchError=null;loading=true})
+        [<Pojo>]
+        type AjaxWrapperState = {data:JsonString; searchError:string; loading:bool}
+        [<Pojo>]
+        type AjaxWrapperProps = {getUrl:string;renderer:System.Func<obj,React.ReactElement>}
+        type AjaxWrapper(props) =
+            inherit React.Component<AjaxWrapperProps,AjaxWrapperState>(props)
+            do base.setInitState({data=null; searchError=null;loading=true})
 
-        member x.componentWillMount() =
-            debugAjaxWrapper("AjaxWrapper: componentWillMount")
-        member x.onSearchFailed searchText =
-            debugAjaxWrapper("AjaxWrapper:onSearchFailed")
-            console.warn("ajax failed")
-            x.setState({x.state with data=null; searchError= "failed to search for " + searchText})
-        member x.onSearchResults (evt: AjaxEvent) =
-            // does this indicate we need another generic param on this type? perhaps on the props type so the renderer accepts it
-            let model : obj = Fable.Core.JsInterop.ofJson evt.targetResponseText
-            debugAjaxWrapper("AjaxWrapper: onSearchResults", model, evt)
-        member x.Render() =
-            debugAjaxWrapper("AjaxWrapper: rendering", x.state)
-    let ajaxWrapperTest = AjaxWrapper({renderer=null})
+            member x.componentWillMount() =
+                debugAjaxWrapper("AjaxWrapper: componentWillMount")
+            member x.onSearchFailed searchText =
+                debugAjaxWrapper("AjaxWrapper:onSearchFailed")
+                console.warn("ajax failed")
+                x.setState({x.state with data=null; searchError= "failed to search for " + (string searchText)})
+            member x.onSearchResults (evt: AjaxEvent) =
+                // does this indicate we need another generic param on this type? perhaps on the props type so the renderer accepts it
+                let model : obj = Fable.Core.JsInterop.ofJson evt.targetResponseText
+                debugAjaxWrapper("AjaxWrapper: onSearchResults", model, evt)
+            member x.sendSearch() =
+                debugAjaxWrapper("AjaxWrapper: about to fetch")
+                let oReq : XMLHttpRequest = createImported XMLHttpRequest
+                oReq.addEventListener_load (System.Func<_,_>(fun evt -> x.onSearchResults evt;undefined))
+                oReq.addEventListener_error (System.Func<_,_>(fun eEvt -> x.onSearchFailed(box eEvt); undefined))
+                oReq.``open``("GET", x.props.getUrl)
+                oReq.send()
+                oReq
+
+            member x.Render() : React.ReactElement =
+                debugAjaxWrapper("AjaxWrapper: rendering", x.state)
+                let rendering = props.renderer.Invoke(x.state)
+                if isDefined rendering then
+                    rendering
+                else
+                    R.div list.Empty [R.str "ajax wrapper failed to render"]
+
+    ()
+    let ajaxWrapperTest = AjaxAssistants.AjaxWrapper({getUrl=null;renderer=null})
+    // we have F# type system, do we need propTypes anymore?
+    // AjaxWrapper?propTypes <- createObj ["render", ]
+
+    // expose it out as a global type, so we can inspect it/test it
 
     [<Emit("AjaxWrapper")>]
     let ajaxwrapperTypeName:obj = jsNative
 
     window?AjaxWrapper <- ajaxwrapperTypeName
 
-    // nameofLambda (fun () -> typeof<AjaxWrapper>)
-    // |> defineGlobal
-    // |> ignore
+
+    [<Pojo>]
+    type AjaxRenderWrapperProps = {title:string; loading:bool; data:obj; renderData:System.Func<obj,React.ReactElement>}
+// why does this use a type with props.renderData and not props.render like the AjaxWrapper does?
+    let AjaxRenderWrapper = System.Func<AjaxRenderWrapperProps,_>(fun (props:AjaxRenderWrapperProps) ->
+        if isDefined props?searchError || (props.loading <> true && isUndefined props.data) then
+            R.div [R.Props.ClassName "text-danger"] [props.title |> R.str]
+        elif props.loading then
+            R.div [R.Props.ClassName "text-warning"] ["Loading" + props.title + "..." |> R.str]
+        else
+            props.renderData.Invoke(props.data)
+    )
+
+    let ajax
 
     [<Pojo>]
     type NavButtonProps = {name:string}
