@@ -12,6 +12,12 @@ open Fable.Import.Browser
 console.log("Fable is up and running...")
 module Helpers =
 
+    // [<Emit("clearTimeout($0)")>]
+    let inline clearTimeout x = Fable.Import.Browser.window.clearTimeout x
+    let inline setTimeout x ms = Fable.Import.Browser.window.setTimeout(x,ms)
+    [<Emit("throw error($0)")>]
+    let jsThrow x : obj -> 'T = jsNative
+
     [<Emit("undefined")>]
     let undefined : obj = jsNative
     [<Emit("arguments")>]
@@ -249,7 +255,11 @@ module ErasedDUs =
 module JsHelpers =
     [<Emit("typeof $0")>]
     let getTypeOf x :string = jsNative
-
+    [<Global>]
+    module String =
+        [<Global>]
+        [<Emit("$1.trim()")>]
+        let trim (x:string) = x.Trim()
 
 
 [<Emit("new $0()")>]
@@ -444,6 +454,8 @@ module AllHelpers =
     //     let keys (x:obj) : string array = jsNative
 
     let mutable loggedStorageFailure = false
+
+    // behavior is undefined for arrays.. what should it do?
     let getNumberOrDefault (x:obj) (defaultValue:int) =
         // if isNaN(convertToNumber x) || isUndefined x || isNull x then
         if Number.isNaN (convertToNumber x) || isUndefined x || isNull x then
@@ -461,6 +473,15 @@ module AllHelpers =
             Seq.filter(fun propName -> not (isIn propName target)) (Fable.Import.JS.Object.keys source)
             |> Seq.iter(fun propName -> target?(propName) <- source?(propName))
             target
+    let debounce =
+        let mutable timer = 0.
+        System.Action<obj,float>(fun callback ms ->
+            if getTypeOf callback <> "function" then
+                Helpers.jsThrow callback |> ignore
+            clearTimeout timer
+            // clearTimeout timer
+            timer <- setTimeout callback ms
+        )
     ()
 
 [<Emit("AllHelpers")>]
@@ -601,7 +622,7 @@ module Jasmine =
         let copy src m def = AllHelpers.copyObject src m def
         describe "AllHelpers" (System.Action(fun () ->
             describe "getNumberOrDefault" (System.Action (fun () ->
-                console.group "getNumberOrDefault"
+                // console.group "getNumberOrDefault"
                 it "Should be able to get a number from a string" (System.Action(fun () ->
                     let expected = 1
                     let actual = getNumberOrDefault "1" 5
@@ -620,11 +641,9 @@ module Jasmine =
                 it "Should return the defaultValue when the target is interesting value \"5e\"" (System.Action(fun () ->
                     let expected = 1
                     let actual = getNumberOrDefault "5e" expected
-                    console.log2 expected actual
                     expect(expected).toEqual(actual)
                 ))
-                console.groupEnd()
-
+                // console.groupEnd()
             ))
             describe "copyObject" (System.Action(fun () ->
                 it "Should copy an object" (System.Action(fun () ->
