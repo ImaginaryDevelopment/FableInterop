@@ -482,6 +482,14 @@ module AllHelpers =
             // clearTimeout timer
             timer <- setTimeout callback ms
         )
+    // let debounceChange = System.Action<_,_,_>(fun (callback, e, ...args) ->
+    //     if isUndefined callback || isNull callback then
+    //         console.info("no callback for debounceChange", e.target, jsTypeOf callback, callback)
+    //     else
+    //         e.persist()
+    //         args.unshift(e.target.value)
+    //         debounce (System.Action(fun () -> callback.Invoke(...args), 500))
+    // )
     ()
 
 [<Emit("AllHelpers")>]
