@@ -441,11 +441,13 @@ module Jasmine =
 
 open JsHelpers
 module JsxHelpers =
+
     type IReactProps =
         abstract member spread : obj
-        abstract member displayName:string
+        // abstract member displayName:string
 
 open JsxHelpers
+
 module PM =
     // Es6 modules automatically enable strict mode
     // useStrict()
@@ -496,20 +498,46 @@ module PM =
 module ComponentsJsx =
     // should this be
     // [<Global>]
+    type Fable.Import.Browser.Event with
+        [<Emit("target.responseText")>]
+        member x.targetResponseText :string = jsNative
+    type AjaxEvent = Fable.Import.Browser.Event
     let mutable IsAjaxWrapperDebug = false
-    let debugAjaxWrapper () =
+    let debugAjaxWrapper ([<Erase>]any:obj) =
         if IsAjaxWrapperDebug then
             console.log(arguments)
     type JsonString = string
+
     [<Pojo>]
     type AjaxWrapperState = {data:JsonString; searchError:string; loading:bool}
     [<Pojo>]
-    type AjaxWrapperProps = {data:JsonString; searchError:string; loading:bool}
+    type AjaxWrapperProps = {renderer:System.Func<obj,obj>}
     type AjaxWrapper(props) =
         inherit React.Component<AjaxWrapperProps,AjaxWrapperState>(props)
         do base.setInitState({data=null; searchError=null;loading=true})
+
+        member x.componentWillMount() =
+            debugAjaxWrapper("AjaxWrapper: componentWillMount")
+        member x.onSearchFailed searchText =
+            debugAjaxWrapper("AjaxWrapper:onSearchFailed")
+            console.warn("ajax failed")
+            x.setState({x.state with data=null; searchError= "failed to search for " + searchText})
+        member x.onSearchResults (evt: AjaxEvent) =
+            // does this indicate we need another generic param on this type? perhaps on the props type so the renderer accepts it
+            let model : obj = Fable.Core.JsInterop.ofJson evt.targetResponseText
+            debugAjaxWrapper("AjaxWrapper: onSearchResults", model, evt)
         member x.Render() =
-            null
+            debugAjaxWrapper("AjaxWrapper: rendering", x.state)
+    let ajaxWrapperTest = AjaxWrapper({renderer=null})
+
+    [<Emit("AjaxWrapper")>]
+    let ajaxwrapperTypeName:obj = jsNative
+
+    window?AjaxWrapper <- ajaxwrapperTypeName
+
+    // nameofLambda (fun () -> typeof<AjaxWrapper>)
+    // |> defineGlobal
+    // |> ignore
 
     [<Pojo>]
     type NavButtonProps = {name:string}
