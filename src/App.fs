@@ -32,7 +32,7 @@ module Helpers =
 
 
     [<Emit("isNaN($0)")>]
-    let isNaN (x:'a) = jsNative
+    let isNaN (x:'a):bool = jsNative
 
     [<Emit("Math.random()")>]
     let getRandom() : float = jsNative
@@ -319,124 +319,6 @@ module JsHelpers =
 let createImported (x:'T) = jsNative
 
 
-module Jasmine =
-    [<Pojo>]
-    type Result = {
-        pass:bool
-        message:string
-    }
-    [<Pojo>]
-    type CustomMatcher<'TActual,'TExpected> = {
-        compare:System.Func<'TActual,'TExpected,Result>
-    }
-    type IJasmine =
-        abstract member addMatchers : obj -> unit
-    [<Emit("$0 = null;")>]
-    let declare (name:string) = jsNative
-    [<Emit("beforeEach($0);")>]
-    let beforeEach (f:System.Action) = jsNative
-    [<Emit("describe($0,$1)")>]
-    let describe (x:string) (f: System.Action) :unit = jsNative
-
-    [<Emit("it($0,$1)")>]
-    let it (x:string) (f:System.Action) = jsNative
-    type IJasmineExpect =
-        abstract member toEqual: obj -> unit
-        abstract member toBeFalsy: unit -> unit
-        abstract member toBeTruthy: unit -> unit
-        abstract member toHaveBeenCalledWith: obj -> unit
-        abstract member toThrowError: string -> unit
-
-    [<Emit("jasmine")>]
-    let jasmine : IJasmine = jsNative
-
-    [<Emit("expect($0)")>]
-    let expect o : IJasmineExpect = jsNative
-    [<Emit("spyOn($0,$1)")>]
-    let spyOn (o:obj) (method:string) : unit = jsNative
-
-    module Sample =
-        [<AllowNullLiteralAttribute>]
-        type Song =
-            abstract member name:string
-            // abstract member persistFavoriteStatus:bool with get,set
-
-            // making this a Func enabled passing a reference to the method, for jasmine testing
-            abstract member persistFavoriteStatus: System.Func<unit, unit>
-        type IJasmineExpect with
-            [<Emit("($0).toBePlaying($1)")>]
-            member x.toBePlaying (s:Song) = jsNative
-        [<Emit("new Song()")>]
-        let createSong() : Song = jsNative
-        [<AllowNullLiteralAttribute>]
-        [<Global>]
-        // [<Import("", from="../public/jasmine/src/Player.js")>]
-        type Player () =
-            member __.play : Song -> unit = jsNative
-            member __.pause : unit -> unit = jsNative
-            member __.currentlyPlayingSong : Song = jsNative
-            member __.isPlaying:bool = jsNative
-            member __.resume: unit -> unit = jsNative
-            member __.makeFavorite: unit -> unit = jsNative
-        // this imports, but the target file doesn't export anything so... no dice
-        // importAll "../public/jasmine/src/Player.js" |> ignore
-
-        module SpecHelpers =
-            beforeEach(System.Action(fun _ ->
-                jasmine.addMatchers (
-                    createObj ["toBePlaying", box (System.Func<_>(fun () -> { compare= (System.Func<_,_,_>(fun actual expected ->
-                        let player :Player = actual
-                        {pass=player.currentlyPlayingSong = expected && player.isPlaying;message=null}
-                    ))}))]
-                )
-            ))
-        // appears to have worked, kinda/sorta?
-        // could shim it I think? https://webpack.js.org/guides/shimming/
-        // importDefault "../public/jasmine/src/Player.js"
-        describe "Player" (System.Action(fun _ ->
-            let mutable player :Player = null
-            let mutable song :Song = null
-            beforeEach (System.Action(fun _ ->
-                player <- Player()
-                song <- createSong ()
-            ))
-            it "should be able to play a Song" (System.Action(fun () ->
-                player.play(song)
-                expect(player.currentlyPlayingSong).toEqual(song)
-                // custom matcher
-                expect(player).toBePlaying(song)
-            ))
-            describe "when a song has been paused" (System.Action(fun () ->
-                beforeEach (System.Action(fun() ->
-                    player.play song
-                    player.pause()
-                    ))
-
-                it "should indicate that the song is currently paused" (System.Action(fun () ->
-                    expect(player.isPlaying).toBeFalsy()
-                ))
-                it "should be possible to resume" (System.Action(fun () ->
-                    player.resume()
-                    expect(player.isPlaying) .toBeTruthy()
-                    expect(player.currentlyPlayingSong).toEqual(song)
-                ))
-            ))
-            it "tells the current song if the user has made it a favorite" (System.Action(fun() ->
-                spyOn song "persistFavoriteStatus"
-                player.play(song)
-                player.makeFavorite()
-                // this line fails to pass the delegate, instead it provides a function that calls the delegate
-                expect(song.persistFavoriteStatus).toHaveBeenCalledWith(true)
-            ))
-            describe "resume" (System.Action(fun() ->
-                it "should throw an exception if song is already playing" (System.Action(fun() ->
-                    player.play(song)
-                    expect(System.Action(fun () ->
-                            player.resume()
-                    )).toThrowError("song is already playing")
-                ))
-            ))
-        ))
 
 
 open JsHelpers
@@ -586,6 +468,220 @@ module ComponentsJsx =
 
     ()
 
+module AllHelpers =
+    [<Erase>]
+    [<RequireQualifiedAccess>]
+    type Number =
+        | Int of int
+        | Float of float
+    [<Erase>]
+    [<RequireQualifiedAccess>]
+    type NumberOrNaN =
+        |Number of Number
+        |NaN
+    [<Erase>]
+    [<RequireQualifiedAccess>]
+    type NumberOrString =
+        | Number of Number
+        | String of string
+    // type System.Object with
+    //     [<Emit("Object.keys($0)")>]
+    //     static member keys (x:obj) : string[] = jsNative
+
+    [<Emit("Object.keys($0)")>]
+    [<Global>]
+    let keys x: string[] = jsNative
+
+    [<Emit("$0 in $1")>]
+    let isIn (x:obj) (prop:obj) :bool = jsNative
+
+    [<Emit("+$0")>]
+    let convertToNumber (x:obj) : NumberOrNaN = jsNative
+    // [<Emit("Object")>]
+    // module Object =
+
+    //     [<Emit("Object.keys($0)")>]
+    //     let keys (x:obj) : string array = jsNative
+
+    let mutable loggedStorageFailure = false
+    let getNumberOrDefault (x:obj) (defaultValue:int) =
+        if isNaN(x) || isUndefined x then
+            box defaultValue
+        else box <| convertToNumber x
+    // [<Emit("Object.keys($0)")>]
+    // let sourceKeys src : obj[] = jsNative
+    let copyObject (source:obj) toMerge defaultValue =
+        if isUndefined source || isNull source then
+            defaultValue
+        else
+            let target = if isDefined toMerge then toMerge else createEmpty
+            // System.Object.keys source
+            // keys source
+            Seq.filter(fun propName -> not (isIn propName target)) (Fable.Import.JS.Object.keys source)
+            |> Seq.iter(fun propName -> target?(propName) <- source?(propName))
+            target
+    ()
+
+[<Emit("AllHelpers")>]
+let allHelpers : obj = jsNative
+defineGlobal "AllHelpers" allHelpers
+module Loot = ()
+module Adapters = ()
+module Data = ()
+module FormationCalc = ()
+[<CompiledName("JsxHelpers")>]
+module CJsxHelpers = ()
+module TalentCalc = ()
+module EpTracker = ()
 
 
 
+module Jasmine =
+    [<Pojo>]
+    type Result = {
+        pass:bool
+        message:string
+    }
+    [<Pojo>]
+    type CustomMatcher<'TActual,'TExpected> = {
+        compare:System.Func<'TActual,'TExpected,Result>
+    }
+    type IJasmine =
+        abstract member addMatchers : obj -> unit
+    [<Emit("$0 = null;")>]
+    let declare (name:string) = jsNative
+    [<Emit("beforeEach($0);")>]
+    let beforeEach (f:System.Action) = jsNative
+    [<Emit("describe($0,$1)")>]
+    let describe (x:string) (f: System.Action) :unit = jsNative
+
+    [<Emit("it($0,$1)")>]
+    let it (x:string) (f:System.Action) = jsNative
+    type IJasmineExpect =
+        abstract member toEqual: obj -> unit
+        abstract member toBeFalsy: unit -> unit
+        abstract member toBeTruthy: unit -> unit
+        abstract member toHaveBeenCalledWith: obj -> unit
+        abstract member toThrowError: string -> unit
+
+    [<Emit("jasmine")>]
+    let jasmine : IJasmine = jsNative
+
+    [<Emit("expect($0)")>]
+    let expect o : IJasmineExpect = jsNative
+    [<Emit("spyOn($0,$1)")>]
+    let spyOn (o:obj) (method:string) : unit = jsNative
+
+    module Sample =
+        [<AllowNullLiteralAttribute>]
+        type Song =
+            abstract member name:string
+            // abstract member persistFavoriteStatus:bool with get,set
+
+            // making this a Func enabled passing a reference to the method, for jasmine testing
+            abstract member persistFavoriteStatus: System.Func<unit, unit>
+        type IJasmineExpect with
+            [<Emit("($0).toBePlaying($1)")>]
+            member x.toBePlaying (s:Song) = jsNative
+        [<Emit("new Song()")>]
+        let createSong() : Song = jsNative
+        [<AllowNullLiteralAttribute>]
+        [<Global>]
+        // [<Import("", from="../public/jasmine/src/Player.js")>]
+        type Player () =
+            member __.play : Song -> unit = jsNative
+            member __.pause : unit -> unit = jsNative
+            member __.currentlyPlayingSong : Song = jsNative
+            member __.isPlaying:bool = jsNative
+            member __.resume: unit -> unit = jsNative
+            member __.makeFavorite: unit -> unit = jsNative
+        // this imports, but the target file doesn't export anything so... no dice
+        // importAll "../public/jasmine/src/Player.js" |> ignore
+
+        module SpecHelpers =
+            beforeEach(System.Action(fun _ ->
+                jasmine.addMatchers (
+                    createObj ["toBePlaying", box (System.Func<_>(fun () -> { compare= (System.Func<_,_,_>(fun actual expected ->
+                        let player :Player = actual
+                        {pass=player.currentlyPlayingSong = expected && player.isPlaying;message=null}
+                    ))}))]
+                )
+            ))
+        // appears to have worked, kinda/sorta?
+        // could shim it I think? https://webpack.js.org/guides/shimming/
+        // importDefault "../public/jasmine/src/Player.js"
+        describe "Player" (System.Action(fun _ ->
+            let mutable player :Player = null
+            let mutable song :Song = null
+            beforeEach (System.Action(fun _ ->
+                player <- Player()
+                song <- createSong ()
+            ))
+            it "should be able to play a Song" (System.Action(fun () ->
+                player.play(song)
+                expect(player.currentlyPlayingSong).toEqual(song)
+                // custom matcher
+                expect(player).toBePlaying(song)
+            ))
+            describe "when a song has been paused" (System.Action(fun () ->
+                beforeEach (System.Action(fun() ->
+                    player.play song
+                    player.pause()
+                    ))
+
+                it "should indicate that the song is currently paused" (System.Action(fun () ->
+                    expect(player.isPlaying).toBeFalsy()
+                ))
+                it "should be possible to resume" (System.Action(fun () ->
+                    player.resume()
+                    expect(player.isPlaying) .toBeTruthy()
+                    expect(player.currentlyPlayingSong).toEqual(song)
+                ))
+            ))
+            it "tells the current song if the user has made it a favorite" (System.Action(fun() ->
+                spyOn song "persistFavoriteStatus"
+                player.play(song)
+                player.makeFavorite()
+                // this line fails to pass the delegate, instead it provides a function that calls the delegate
+                expect(song.persistFavoriteStatus).toHaveBeenCalledWith(true)
+            ))
+            describe "resume" (System.Action(fun() ->
+                it "should throw an exception if song is already playing" (System.Action(fun() ->
+                    player.play(song)
+                    expect(System.Action(fun () ->
+                            player.resume()
+                    )).toThrowError("song is already playing")
+                ))
+            ))
+        ))
+    module AllHelpersTests =
+        let helloWorldP = ["Hello",box "World"]
+        let helloWorldObj = createObj helloWorldP
+        let copy src m def = AllHelpers.copyObject src m def
+        describe "AllHelpers" (System.Action(fun () ->
+            describe "copyObject" (System.Action(fun () ->
+                it "Should copy an object" (System.Action(fun () ->
+                    let expected = helloWorldObj
+                    let actual : obj = copy expected undefined undefined
+                    expect(expected).toEqual(actual)
+
+                ))
+                it "Should return undefined when source is undefined" (System.Action(fun () ->
+                    let expected = undefined
+                    let actual = copy expected undefined undefined
+                    expect(expected).toEqual(actual)
+                ))
+                it "Should return defaultValue when source is null" (System.Action(fun () ->
+                    let expected = helloWorldObj
+                    let actual = copy null undefined expected
+                    expect(expected).toEqual(actual)
+                ))
+                it "Should be able to merge two objects, and not use the defaultValue" (System.Action(fun () ->
+                    let src = helloWorldObj
+                    let toMergeP = ["World",box "Goodbye"]
+                    let expected = createObj (toMergeP@helloWorldP)
+                    let actual = copy src (createObj toMergeP) (box 1)
+                    expect(expected).toEqual(actual)
+                ))
+            ))
+        ))
