@@ -559,6 +559,7 @@ module Jasmine =
     let it (x:string) (f:System.Action) = jsNative
     type IJasmineExpect =
         abstract member toEqual: obj -> unit
+        abstract member toBe: obj -> unit
         abstract member toBeFalsy: unit -> unit
         abstract member toBeTruthy: unit -> unit
         abstract member toHaveBeenCalledWith: obj -> unit
@@ -682,6 +683,13 @@ module Jasmine =
                     let expected = createObj (toMergeP@helloWorldP)
                     let actual = copy src (createObj toMergeP) (box 1)
                     expect(expected).toEqual(actual)
+                ))
+                it "Should not return the same object" (System.Action(fun () ->
+                    let src = createEmpty
+                    let actual = copy src null null
+                    actual?("Hello") <- "World"
+                    expect(src?("Hello")).toBe(undefined)
+                    ()
                 ))
             ))
         ))
