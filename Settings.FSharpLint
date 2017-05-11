@@ -7,6 +7,10 @@
                 <MemberNames>
                     <Enabled>false</Enabled>
                 </MemberNames>
+                <InterfaceNames>
+                    <Prefix></Prefix>
+                    <Enabled>false</Enabled>
+                </InterfaceNames>
             </Rules>
         </NameConventions>
   </Analysers>

@@ -1,4 +1,3 @@
-[<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions","MemberNamesMustBePascalCase")>]
 module FableInterop
 
 open Fable.Core
@@ -11,97 +10,34 @@ open Fable.Import.Browser
 // console.clear here, means any output from previous javascript to load, would be hidden/lost
 // console.clear()
 console.log("Fable is up and running...")
+module Helpers =
 
-[<Emit("undefined")>]
-let undefined : obj = jsNative
-[<Emit("arguments")>]
-let arguments : obj = jsNative
-type Console with
-    [<Emit("console.log($0,$1)")>]
-    member __.log2 a b = jsNative
-    // let log2 a b = jsNative
+    [<Emit("undefined")>]
+    let undefined : obj = jsNative
+    [<Emit("arguments")>]
+    let arguments : obj = jsNative
+    type Console with
+        [<Emit("console.log($0,$1)")>]
+        member __.log2 a b = jsNative
 
-// works but not available anywhere else, as this seems to be nearly the last thing to run
-// so nice to see in dead comments, but not to keep in or use
-// let inspect (x:obj) (title:string) :obj =
-//     console.log2 title x
-//     x
+    [<Emit("window[$0] = $1")>]
+    let defineGlobal (name:string) (x:'A) : unit = jsNative
 
+    [<Emit("$0 === undefined")>]
+    // calling this isUndefined1, because I have a different preference for the real isUndefined
+    let isUndefined (x: 'a) : bool = jsNative
 
-[<Emit("window[$0] = $1")>]
-let defineGlobal (name:string) (x:'A) : unit = jsNative
-console.log(undefined)
-
-[<Emit("1")>]
-let one : int = jsNative
-let result = one + one
-console.log(result)
-
-[<Emit("$0 === undefined")>]
-// calling this isUndefined1, because I have a different preference for the real isUndefined
-let isUndefined (x: 'a) : bool = jsNative
-
-[<Emit("$0 != null")>]
-let isDefined (x: 'a) : bool = jsNative
-
-// null is not undefined in my version (which is great for differentiating between passing null, or forgetting to pass a value, or some other things with objects I think)
-// [<Emit("!($0 != null)")>]
-// let isUndefined (x:'A) : bool = jsNative
+    [<Emit("$0 != null")>]
+    let isDefined (x: 'a) : bool = jsNative
 
 
-[<Emit("$0 + $1")>]
-let add (x:int) (y:int) = jsNative
-// console.log isn't exactly reflective of console.log
-// this doesn't work the way I expect:
-// console.log("add", add 5 10)
+    [<Emit("isNaN($0)")>]
+    let isNaN (x:'a) = jsNative
 
-console.log(add 5 10)
+    [<Emit("Math.random()")>]
+    let getRandom() : float = jsNative
 
-[<Emit("isNaN($0)")>]
-let isNaN (x:'a) = jsNative
-console.log(log -2.0)
-console.log(isNaN (log -2.0))
-
-[<Emit("Math.random()")>]
-let getRandom() : float = jsNative
-console.log(getRandom())
-// returns int not float (also note: supported)
-console.log(System.Random().Next())
-
-module BadParseFloat =
-    [<Emit("isNaN(parseFloat($0)) ? null : parseFloat($0)")>]
-    let parseFloat' (input : string) : float option = jsNative
-    let directNativeParseFloat() =
-        console.group("directNativeParseFloat")
-
-        // Correct parsing
-        match parseFloat' "5.3" with
-        | Some value123 -> console.log(value123)
-        | None -> console.log("parseFloat failed!")
-
-        // Parsing fails
-        match parseFloat' "%" with
-        | Some value -> console.log(value)
-        | None -> console.log("parseFloat failed!")
-
-        match parseFloat' "5x" with
-        | Some value -> console.log(value)
-        | None -> console.log("parseFloat failed!")
-        console.groupEnd()
-        if false then
-            raise <| System.NotImplementedException("bad directnativeparsefloat")
-
-
-BadParseFloat.directNativeParseFloat()
-
-module ParseFloatInefficient =
-
-    [<Emit("isNaN(+$0) ? null : (+$0)")>]
-    let parseFloat (input : string) : float option = jsNative
-
-    match parseFloat "5x" with
-    | Some result -> console.log(result)       //  Parsing fails as it should
-    | None -> console.log("No result found")   //  logs "No result found"
+open Helpers
 
 module ParseFloat =
     // other implementations can evaluate $0 twice, if they were complex functions, they would run twice
@@ -145,11 +81,8 @@ module ParseFloat =
             console.groupEnd()
         systemFloatParse "1.2"
 
-[<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions","MemberNamesMustBePascalCase")>]
 module JQueryMap =
-    // [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions","MemberNamesMustBePascalCase")>]
     type IJQuery =
-        [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions","MemberNamesMustBePascalCase")>]
         abstract css : string * string -> IJQuery
         abstract addClass : string -> IJQuery
         // for awhile not using .on for event attaching was listed as deprecated in jQuery (or a bad practice, I don't remember which)
@@ -239,14 +172,12 @@ module JQueryMap =
 // it seems this produces multiple lines of editing a fresh {}, not a single {current:..., amount:..., unit:...}
 module ObjectLiterals =
     open System
-    [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions", "InterfaceNamesMustBeginWithI")>]
     type AddTimeProps =
 
         abstract current : DateTime with get,set
         [<Emit("$0.specialAmount{{=$1}}")>]
         abstract amount : int with get,set
         abstract unit : string with get,set
-
 
     let parameter = createEmpty<AddTimeProps>
     parameter.current <- DateTime.Now
@@ -260,72 +191,7 @@ type TimeUnit =
     | [<CompiledName("YEARS")>] Years
 console.log(TimeUnit.Months)
 
-// apparently this doesn't work =(
-module ExtensionProperties =
-    open ObjectLiterals
-    type AddTimeProps with
-        member x.Unit2
-            with get() = TimeUnit.Months
-
-    let showExtensionPropertyDoesntWork() =
-        console.log(ObjectLiterals.parameter)
-
-module EnumedObjectLiteral =
-    open System
-    type AddTimeProps =
-        abstract current : DateTime with get,set
-        [<Emit("$0.specialAmount{{=$1}}")>]
-        abstract amount : int with get,set
-        abstract unit : TimeUnit with get,set
-    let parameter = createEmpty<AddTimeProps>
-    parameter.current <- DateTime.Now
-    parameter.amount <- 30
-    parameter.unit <- TimeUnit.Years
-    console.log(parameter)
-
-module Pojos =
-    // for libraries that require a plain object (like React components)
-    [<Pojo>]
-    type Person = {name:string;age:int}
-    console.log(typeof<Person>)
-    type PersonNonPojo = {name2:string;age2:int}
-    let person = {name="Mike"; age=35}
-    let me = {person with name ="Zaid"}
-    let stillMe = {me with age = 20}
-    console.log(stillMe)
-
 // author acknowledges this is not idiomatic F#, but it demonstrates some fable features
-module DULiteral =
-    type Person =
-        | Name of string
-        | Age of int
-    let person = [Name "Mike"; Age 35]
-    console.log(person)
-    // window["person"] = person;
-    defineGlobal "person" person
-    let mkPerson (p:Person list) = keyValueList CaseRules.LowerFirst p
-    console.log(mkPerson person)
-
-    let p = [Name "Mike"; Age 35; unbox ("someProp", 20); !!("otherProp",40)]
-    console.log(mkPerson p)
-
-module LiteralObjectInline =
-    let literalObject =
-        createObj [
-            "prop" ==> "value"
-            "anotherProp" ==> 5
-        ]
-    console.log literalObject
-    let literalObject2 =
-        createObj [
-            "props" ==> "value"
-            "anotherProp" ==> 5
-            "nested" ==>
-                createObj [
-                        "nestedProp" ==> "some-value"
-                ]
-        ]
-    console.log(literalObject2)
 
 module ImportsCalls =
     let someJson = "{ \"SpecialProp\": \"hello\" }"
@@ -634,6 +500,16 @@ module ComponentsJsx =
     let debugAjaxWrapper () =
         if IsAjaxWrapperDebug then
             console.log(arguments)
+    type JsonString = string
+    [<Pojo>]
+    type AjaxWrapperState = {data:JsonString; searchError:string; loading:bool}
+    [<Pojo>]
+    type AjaxWrapperProps = {data:JsonString; searchError:string; loading:bool}
+    type AjaxWrapper(props) =
+        inherit React.Component<AjaxWrapperProps,AjaxWrapperState>(props)
+        do base.setInitState({data=null; searchError=null;loading=true})
+        member x.Render() =
+            null
 
     [<Pojo>]
     type NavButtonProps = {name:string}
