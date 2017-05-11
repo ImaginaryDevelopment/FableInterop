@@ -634,9 +634,17 @@ module ComponentsJsx =
     let debugAjaxWrapper () =
         if IsAjaxWrapperDebug then
             console.log(arguments)
+
+    [<Pojo>]
     type NavButtonProps = {name:string}
-    type NavButton() =
-        inherit React.Component<NavButtonProps,unit>()
+
+    [<Pojo>]
+    type NavButtonState = {Nunya:string}
+    type NavButton(props) =
+        inherit React.Component<NavButtonProps,NavButtonState>(props)
+        do base.setInitState({Nunya=null})
+        member x.Render() =
+            null
 
     // let NavButton = React.createClass (createObj ["displayName", box "NavButton";])
     ()

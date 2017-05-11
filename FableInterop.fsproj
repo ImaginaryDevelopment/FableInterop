@@ -6,8 +6,8 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="node_modules/fable-import-react/Fable.Import.React.fs" />
-    <Compile Include="node_modules/fable-import-react/Fable.Helpers.React.fs" />
+    <Compile Include="node_modules/fable-react/Fable.Import.React.fs" />
+    <Compile Include="node_modules/fable-react/Fable.Helpers.React.fs" />
     <Compile Include="src/App.fs" />
 
   </ItemGroup>
