@@ -4,7 +4,12 @@
     <DefineConstants>CODE_ANALYSIS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="node_modules/fable-import-react/Fable.Import.React.fs" />
+    <Compile Include="node_modules/fable-import-react/Fable.Helpers.React.fs" />
     <Compile Include="src/App.fs" />
+
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />

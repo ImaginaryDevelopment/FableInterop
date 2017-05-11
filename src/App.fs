@@ -627,36 +627,17 @@ module PM =
             addGetOrSpread (StringOrInt.String "name") "[name=" "]"
             name
 
-module Reacting =
-    [<Erase>]
-    type ReactType =
-        |Elem of Element
-        |Cls of ReactClass
-        |Value of obj
-    and ReactClass private () =
-        [<Emit("props")>]
-        member x.props : IReactProps = jsNative
-        [<Emit("$0.render()")>]
-        member x.render: unit -> ReactType = jsNative
-    [<Global>]
-    module React =
-        let createclass : obj -> ReactClass = jsNative
-        type Component() = class end
-    // [<Global>]
-    // type React =
-        // static member createClass: obj -> ReactClass = jsNative
-        // type Component() = class end
-    // [<Emit("React.createClass($0)")>]
 module ComponentsJsx =
-    open Reacting
     // should this be
     // [<Global>]
     let mutable IsAjaxWrapperDebug = false
     let debugAjaxWrapper () =
         if IsAjaxWrapperDebug then
             console.log(arguments)
+    type NavButtonProps = {name:string}
     type NavButton() =
-        inherit React.Component()
+        inherit React.Component<NavButtonProps,unit>()
+
     // let NavButton = React.createClass (createObj ["displayName", box "NavButton";])
     ()
 
