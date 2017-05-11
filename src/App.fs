@@ -511,14 +511,15 @@ module ComponentsJsx =
         if IsAjaxWrapperDebug then
             console.log(arguments)
     type JsonString = string
+
     module AjaxAssistants =
 
         [<Pojo>]
         type AjaxWrapperState = {data:JsonString; searchError:string; loading:bool}
         [<Pojo>]
-        type AjaxWrapperProps = {getUrl:string;renderer:System.Func<obj,React.ReactElement>}
+        type AjaxWrapperProps<'T> = {getUrl:string;render:System.Func<'T,React.ReactElement>}
         type AjaxWrapper(props) =
-            inherit React.Component<AjaxWrapperProps,AjaxWrapperState>(props)
+            inherit React.Component<AjaxWrapperProps<AjaxWrapperState>,AjaxWrapperState>(props)
             do base.setInitState({data=null; searchError=null;loading=true})
 
             member x.componentWillMount() =
@@ -542,30 +543,29 @@ module ComponentsJsx =
 
             member x.Render() : React.ReactElement =
                 debugAjaxWrapper("AjaxWrapper: rendering", x.state)
-                let rendering = props.renderer.Invoke(x.state)
+                let rendering = props.render.Invoke(x.state)
                 if isDefined rendering then
                     rendering
                 else
                     R.div list.Empty [R.str "ajax wrapper failed to render"]
 
-    ()
-    let ajaxWrapperTest = AjaxAssistants.AjaxWrapper({getUrl=null;renderer=null})
+    open AjaxAssistants
+    let ajaxWrapperTest = AjaxAssistants.AjaxWrapper({getUrl=null;render=null})
     // we have F# type system, do we need propTypes anymore?
     // AjaxWrapper?propTypes <- createObj ["render", ]
 
     // expose it out as a global type, so we can inspect it/test it
 
-    [<Emit("AjaxWrapper")>]
+    [<Emit("AjaxAssistants.AjaxWrapper")>]
     let ajaxwrapperTypeName:obj = jsNative
 
     window?AjaxWrapper <- ajaxwrapperTypeName
 
-
     [<Pojo>]
-    type AjaxRenderWrapperProps = {title:string; loading:bool; data:obj; renderData:System.Func<obj,React.ReactElement>}
+    type AjaxRenderWrapperProps<'T> = {title:string; loading:bool; data:'T; renderData:System.Func<'T,React.ReactElement>}
 // why does this use a type with props.renderData and not props.render like the AjaxWrapper does?
-    let AjaxRenderWrapper = System.Func<AjaxRenderWrapperProps,_>(fun (props:AjaxRenderWrapperProps) ->
-        if isDefined props?searchError || (props.loading <> true && isUndefined props.data) then
+    let AjaxRenderWrapper = System.Func<AjaxRenderWrapperProps<'T>,_>(fun (props:AjaxRenderWrapperProps<'T>) ->
+        if isDefined props?searchError || (not props.loading && isUndefined props.data) then
             R.div [R.Props.ClassName "text-danger"] [props.title |> R.str]
         elif props.loading then
             R.div [R.Props.ClassName "text-warning"] ["Loading" + props.title + "..." |> R.str]
@@ -573,23 +573,18 @@ module ComponentsJsx =
             props.renderData.Invoke(props.data)
     )
 
-    let ajax
-
     [<Pojo>]
-    type NavButtonProps = {name:string}
+    type AjaxComponentProps<'T> = {title:string;loading:bool;renderData:System.Func<'T,React.ReactElement>; getUrl:string}
+    // translated from Ajax component
+    let ajaxComponent props =
+        let renderGiftWrapping = (System.Func<_,_>(fun (state:AjaxWrapperState) ->
+            let p = {title=props.title; loading=state.loading; data=state.data;renderData = props.renderData}
+            AjaxRenderWrapper.Invoke(p)))
+        // type AjaxWrapperProps = {getUrl:string;renderer:System.Func<obj,React.ReactElement>}
+        let p :AjaxWrapperProps<_> = {getUrl=props.getUrl; render=renderGiftWrapping}
+        AjaxWrapper(p)
 
-    [<Pojo>]
-    type NavButtonState = {Nunya:string}
-    type NavButton(props) =
-        inherit React.Component<NavButtonProps,NavButtonState>(props)
-        do base.setInitState({Nunya=null})
-        member x.Render() =
-            null
-
-    // let NavButton = React.createClass (createObj ["displayName", box "NavButton";])
     ()
-
-
 
 
 
