@@ -1,0 +1,48 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "0.1.0",
+    // "command": "dotnet",
+    "isShellCommand": true,
+    "args": [],
+    "tasks": [
+        {
+            "taskName": "dotnet",
+            "suppressTaskName": true,
+            "command":"dotnet",
+            "args": [  "build"],
+            "isBuildCommand": true,
+            "showOutput": "silent",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "taskName": "setup",
+            "suppressTaskName": true,
+            "command":"dotnet",
+            "args":[
+                "new",
+                "-i",
+                "Fable.Template::*"
+            ]
+        },
+        {
+            "taskName": "installNode",
+            "suppressTaskName": true,
+            "command":"choco",
+            "args":["install", "nodejs"]
+        },
+        {
+            "taskName": "npmInstallAll",
+            "suppressTaskName": true,
+            "command":"npm",
+            "args":["install"]
+        },
+        {
+            "taskName": "startup",
+            "command": "start",
+            "isShellCommand": true,
+            "args":["startup.bat"],
+            "isBackground": true
+        }
+    ]
+}
