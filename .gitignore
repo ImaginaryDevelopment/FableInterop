@@ -1,3 +1,4 @@
 node_modules
 obj/
 .vs/FableInterop/v15/.suo
+bin/
