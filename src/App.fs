@@ -17,7 +17,7 @@ module Helpers =
     [<Emit("arguments")>]
     let arguments : obj = jsNative
     type Console with
-        [<Emit("console.log($0,$1)")>]
+        [<Emit("console.log($1,$2)")>]
         member __.log2 a b = jsNative
 
     [<Emit("window[$0] = $1")>]
@@ -46,40 +46,6 @@ module ParseFloat =
     let parseFloat (input : string) : float option = jsNative
     parseFloat("5x")
     |> fun x -> console.log(x)
-
-    module DoubleTryParse =
-        let systemFloatParse x =
-            console.group "double.TryParse"
-            let (isSuccess,value) as result = System.Double.TryParse x
-            match result with
-            | true, x -> console.log(x)
-            | false, _ -> console.log("double.TryParse failed")
-            console.groupEnd()
-            // as long as I return something besides unit, the rest of this method runs in the bizzarre section. really strange
-            value
-
-        // if systemFloatParse returns unit this acts up, and doesn't run the method
-        let bizarreOrUnexpectedMaybeBugs =
-            console.group "buggy?"
-            // this acts strangely, the systemFloatParse function doesn't appear to be evaluated, instead it just prints an empty object {}
-            systemFloatParse "1.2" // returns unit (but doesn't evaluate the function!
-            // x is unit, so it logging an empty object {} makes sense
-            |> fun x -> console.log(x)
-            // proof that I'm not returning
-            |> ignore<obj>
-            // this does the same
-            console.log(systemFloatParse "1.2")
-            console.groupEnd()
-
-        // this does what I would expect
-        systemFloatParse "1.2"
-        |> ignore<obj>
-    module DoubleParse =
-        let systemFloatParse x =
-            console.group "double.Parse"
-            console.log(System.Double.Parse x)
-            console.groupEnd()
-        systemFloatParse "1.2"
 
 module JQueryMap =
     type IJQuery =
@@ -279,35 +245,6 @@ module ErasedDUs =
     let result2 = imaginaryfunc(!^ 4)
     console.log(result2)
 
-module FableInteracting =
-    [<Emit("Date")>]
-    let Date : obj = jsNative
-    let instance :obj = createNew Date ()
-    console.log(instance)
-
-
-    let anArray = [| box 4; box "hello"|]
-    // apparently fable tries to use new ES2015 TypedArrays for arrays
-    let typedArray = [| 4;3;2 |]
-    defineGlobal "typedArray" typedArray
-    console.log(typedArray)
-    let testIsArrayMethod title (f:obj->bool) =
-        console.group (sprintf "testIsArrayMethod %s" title)
-        console.log(f anArray)
-        console.log(f typedArray)
-        console.groupEnd()
-
-    [<Emit("Array.isArray")>]
-    let isArray : obj -> bool = jsNative
-    testIsArrayMethod "isArray" isArray
-    // SO says this one is faster and 'best'
-    [<Emit("$0.constructor === Array")>]
-    let isArray2 (x:'A) : bool = jsNative
-    testIsArrayMethod "array2" isArray2
-
-    [<Emit("$0 instanceof Array")>]
-    let isArray3 (x:'A) = jsNative
-    testIsArrayMethod "isArray3" isArray3
 
 module JsHelpers =
     [<Emit("typeof $0")>]
@@ -471,22 +408,25 @@ module ComponentsJsx =
 module AllHelpers =
     [<Erase>]
     [<RequireQualifiedAccess>]
-    type Number =
+    type JsNumber =
         | Int of int
         | Float of float
     [<Erase>]
     [<RequireQualifiedAccess>]
     type NumberOrNaN =
-        |Number of Number
+        |Number of JsNumber
         |NaN
     [<Erase>]
     [<RequireQualifiedAccess>]
     type NumberOrString =
-        | Number of Number
+        | Number of JsNumber
         | String of string
     // type System.Object with
     //     [<Emit("Object.keys($0)")>]
     //     static member keys (x:obj) : string[] = jsNative
+    [<Global>]
+    module Number =
+        let isNaN : obj -> bool = jsNative
 
     [<Emit("Object.keys($0)")>]
     [<Global>]
@@ -505,7 +445,8 @@ module AllHelpers =
 
     let mutable loggedStorageFailure = false
     let getNumberOrDefault (x:obj) (defaultValue:int) =
-        if isNaN(x) || isUndefined x then
+        // if isNaN(convertToNumber x) || isUndefined x || isNull x then
+        if Number.isNaN (convertToNumber x) || isUndefined x || isNull x then
             box defaultValue
         else box <| convertToNumber x
     // [<Emit("Object.keys($0)")>]
@@ -533,8 +474,6 @@ module FormationCalc = ()
 module CJsxHelpers = ()
 module TalentCalc = ()
 module EpTracker = ()
-
-
 
 module Jasmine =
     [<Pojo>]
@@ -656,10 +595,37 @@ module Jasmine =
             ))
         ))
     module AllHelpersTests =
+        open AllHelpers
         let helloWorldP = ["Hello",box "World"]
         let helloWorldObj = createObj helloWorldP
         let copy src m def = AllHelpers.copyObject src m def
         describe "AllHelpers" (System.Action(fun () ->
+            describe "getNumberOrDefault" (System.Action (fun () ->
+                console.group "getNumberOrDefault"
+                it "Should be able to get a number from a string" (System.Action(fun () ->
+                    let expected = 1
+                    let actual = getNumberOrDefault "1" 5
+                    expect(expected).toEqual(actual)
+                ))
+                it "Should return the defaultValue when the target is undefined" (System.Action(fun () ->
+                    let expected = 1
+                    let actual = getNumberOrDefault undefined expected
+                    expect(expected).toEqual(actual)
+                ))
+                it "Should return the defaultValue when the target is null" (System.Action(fun () ->
+                    let expected = 1
+                    let actual = getNumberOrDefault null expected
+                    expect(expected).toEqual(actual)
+                ))
+                it "Should return the defaultValue when the target is interesting value \"5e\"" (System.Action(fun () ->
+                    let expected = 1
+                    let actual = getNumberOrDefault "5e" expected
+                    console.log2 expected actual
+                    expect(expected).toEqual(actual)
+                ))
+                console.groupEnd()
+
+            ))
             describe "copyObject" (System.Action(fun () ->
                 it "Should copy an object" (System.Action(fun () ->
                     let expected = helloWorldObj
