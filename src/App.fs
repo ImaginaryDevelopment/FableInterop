@@ -5,6 +5,8 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Browser
 
+// online repl at http://fable.io/repl#
+
 // following https://medium.com/@zaid.naom/f-interop-with-javascript-in-fable-the-complete-guide-ccc5b896a59f
 
 // console.clear here, means any output from previous javascript to load, would be hidden/lost
@@ -22,9 +24,16 @@ module Helpers =
     let undefined : obj = jsNative
     [<Emit("arguments")>]
     let arguments : obj = jsNative
+
     type Console with
         [<Emit("console.log($1,$2)")>]
-        member __.log2 a b = jsNative
+        member __.log2 a b :unit = jsNative
+        [<Emit("console.info($1,$2,$3)")>]
+        member __.info3 a b c :unit = jsNative
+        [<Emit("console.info($1,$2,$3,$4)")>]
+        member __.info3 a b c d :unit = jsNative
+        [<Emit("console.info($1,$2,$3,$4)")>]
+        member __.infoX([<System.ParamArray>] args) :unit = jsNative
 
     [<Emit("window[$0] = $1")>]
     let defineGlobal (name:string) (x:'A) : unit = jsNative
@@ -473,6 +482,7 @@ module AllHelpers =
             Seq.filter(fun propName -> not (isIn propName target)) (Fable.Import.JS.Object.keys source)
             |> Seq.iter(fun propName -> target?(propName) <- source?(propName))
             target
+
     let debounce =
         let mutable timer = 0.
         System.Action<obj,float>(fun callback ms ->
@@ -482,14 +492,25 @@ module AllHelpers =
             // clearTimeout timer
             timer <- setTimeout callback ms
         )
-    // let debounceChange = System.Action<_,_,_>(fun (callback, e, ...args) ->
-    //     if isUndefined callback || isNull callback then
-    //         console.info("no callback for debounceChange", e.target, jsTypeOf callback, callback)
-    //     else
-    //         e.persist()
-    //         args.unshift(e.target.value)
-    //         debounce (System.Action(fun () -> callback.Invoke(...args), 500))
-    // )
+    [<Erase>]
+    [<System.Obsolete>]
+    module FailedTranslation =
+        // neither of these work =(
+        [<Emit("...$0")>]
+        let spread x = jsNative
+
+        [<Emit("...args")>]
+        let spreadArgs : obj array = jsNative
+        let debounceChange = System.Action<System.Action<obj>,_,_>(fun (callback:System.Action<obj>) e ([<ParamArray>] [<Emit("...args")>] spreadArgs:obj array) ->
+            if isUndefined callback || isNull callback then
+                console.infoX [| box "no callback for debounceChange"; box e?target; box (getTypeOf callback); box callback; |]
+                ()
+            else
+                e?persist() |> ignore
+                spreadArgs?unshift(e?target?value) |> ignore
+                debounce.Invoke (System.Action(fun () -> callback.Invoke(spreadArgs)), 500.)
+                ()
+        )
     ()
 
 [<Emit("AllHelpers")>]
